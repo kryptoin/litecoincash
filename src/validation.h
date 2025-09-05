@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <list>
 #include <map>
 #include <set>
 #include <stdint.h>
@@ -51,11 +52,11 @@ static const bool DEFAULT_WHITELISTRELAY = true;
 /** Default for -whitelistforcerelay. */
 static const bool DEFAULT_WHITELISTFORCERELAY = true;
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
-static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 100000 / COIN_SCALE / 10; 	    // LitecoinCash: Lowered fees
+static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 100000 / COIN_SCALE / 10;     // LitecoinCash: Lowered fees
 //! -maxtxfee default
-static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.1 * COIN * COIN_SCALE;       	// LitecoinCash: Account for coin scale
+static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.1 * COIN * COIN_SCALE;           // LitecoinCash: Account for coin scale
 //! Discourage users to set fees higher than this amount (in satoshis) per kB
-static const CAmount HIGH_TX_FEE_PER_KB = 0.01 * COIN * COIN_SCALE;              	// LitecoinCash: Account for coin scale
+static const CAmount HIGH_TX_FEE_PER_KB = 0.01 * COIN * COIN_SCALE;                  // LitecoinCash: Account for coin scale
 //! -maxtxfee will warn if called with a higher fee than this amount (in satoshis)
 static const CAmount HIGH_MAX_TX_FEE = 100 * HIGH_TX_FEE_PER_KB;
 /** Default for -limitancestorcount, max number of in-mempool ancestors */
@@ -88,14 +89,14 @@ static const unsigned int BLOCK_STALLING_TIMEOUT = 2;
 /** Number of headers sent in one getheaders result. We rely on the assumption that if a peer sends
  *  less than this number, we reached its tip. Changing this value is a protocol upgrade. */
 static const unsigned int MAX_HEADERS_RESULTS = 2000;
-/** Maximum depth of blocks we're willing to serve as compact blocks to peers
+/** Maximum depth of blocks we\'re willing to serve as compact blocks to peers
  *  when requested. For older blocks, a regular BLOCK response will be sent. */
 static const int MAX_CMPCTBLOCK_DEPTH = 5;
-/** Maximum depth of blocks we're willing to respond to GETBLOCKTXN requests for. */
+/** Maximum depth of blocks we\'re willing to respond to GETBLOCKTXN requests for. */
 static const int MAX_BLOCKTXN_DEPTH = 10;
-/** Size of the "block download window": how far ahead of our current height do we fetch?
+/** Size of the \"block download window\": how far ahead of our current height do we fetch?
  *  Larger windows tolerate larger download speed differences between peer, but increase the potential
- *  degree of disordering of blocks on disk (which make reindexing and pruning harder). We'll probably
+ *  degree of disordering of blocks on disk (which make reindexing and pruning harder). We\'ll probably
  *  want to make this a per-peer adaptive value at some point. */
 static const unsigned int BLOCK_DOWNLOAD_WINDOW = 1024;
 /** Time to wait (in seconds) between writing blocks/block index to disk. */
@@ -139,7 +140,7 @@ static const bool DEFAULT_ENABLE_REPLACEMENT = false;
 /** Default for using fee filter */
 static const bool DEFAULT_FEEFILTER = true;
 
-/** Maximum number of headers to announce when relaying blocks with headers message.*/
+/** Maximum number of headers to announce when relaying blocks with headers message. */
 static const unsigned int MAX_BLOCKS_TO_ANNOUNCE = 8;
 
 /** Maximum number of unconnecting headers announcements before DoS score */
@@ -191,7 +192,7 @@ extern uint256 hashAssumeValid;
 /** Minimum work we will assume exists on some valid chain. */
 extern arith_uint256 nMinimumChainWork;
 
-/** Best header we've seen so far (used for getheaders queries' starting points). */
+/** Best header we\'ve seen so far (used for getheaders queries\' starting points). */
 extern CBlockIndex *pindexBestHeader;
 
 /** Minimum disk space required - used in CheckDiskSpace() */
@@ -200,9 +201,9 @@ static const uint64_t nMinDiskSpace = 52428800;
 /** Pruning-related variables and constants */
 /** True if any block files have ever been pruned. */
 extern bool fHavePruned;
-/** True if we're running in -prune mode. */
+/** True if we\'re running in -prune mode. */
 extern bool fPruneMode;
-/** Number of MiB of block files that we're trying to stay below. */
+/** Number of MiB of block files that we\'re trying to stay below. */
 extern uint64_t nPruneTarget;
 /** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of chainActive.Tip() will not be pruned. */
 static const unsigned int MIN_BLOCKS_TO_KEEP = 288;
@@ -267,7 +268,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
 /** Ensures we have a genesis block in the block tree, possibly writing one to disk. */
 bool LoadGenesisBlock(const CChainParams& chainparams);
 /** Load the block tree and coins database from disk,
- * initializing state if we're running with -reindex. */
+ * initializing state if we\'re running with -reindex. */
 bool LoadBlockIndex(const CChainParams& chainparams);
 /** Update the chain tip based on database information. */
 bool LoadChainTip(const CChainParams& chainparams);
@@ -447,7 +448,7 @@ bool RewindBlockIndex(const CChainParams& params);
 /** Update uncommitted block structures (currently: only the witness nonce). This is safe for submitted blocks. */
 void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);
 
-/** Produce the necessary coinbase commitment for a block (modifies the hash, don't call for mined blocks). */
+/** Produce the necessary coinbase commitment for a block (modifies the hash, don\'t call for mined blocks). */
 std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);
 
 /** RAII wrapper for VerifyDB: Verify consistency of the block and coin databases */
@@ -458,7 +459,7 @@ public:
     bool VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview, int nCheckLevel, int nCheckDepth);
 };
 
-/** Replay blocks that aren't fully applied to the database. */
+/** Replay blocks that aren\'t fully applied to the database. */
 bool ReplayBlocks(const CChainParams& params, CCoinsView* view);
 
 /** Find the last common block between the parameter chain and a locator. */
@@ -510,6 +511,7 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
 
 /** Reject codes greater or equal to this can be returned by AcceptToMemPool
  * for transactions, to signal internal conditions. They cannot and should not
+ *
  * be sent over the P2P network.
  */
 static const unsigned int REJECT_INTERNAL = 0x100;

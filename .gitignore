@@ -94,6 +94,24 @@ qrc_*.cpp
 .DS_Store
 build
 
+# Autotools generated files
+aclocal.m4
+autom4te.cache/
+compile
+config.h
+config.h.in
+config.log
+config.status
+configure
+configure~
+depcomp
+install-sh
+libtool
+Makefile
+Makefile.in
+missing
+test-driver
+
 #lcov
 *.gcno
 *.gcda
