@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <openssl/sha.h>
+#include <sys/endian.h>
 
 #if defined(USE_SSE2) && !defined(USE_SSE2_ALWAYS)
 #ifdef _MSC_VER
@@ -43,7 +44,7 @@
 #include <cpuid.h>
 #endif
 #endif
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__APPLE__)
 static inline uint32_t be32dec(const void *pp)
 {
 	const uint8_t *p = (uint8_t const *)pp;

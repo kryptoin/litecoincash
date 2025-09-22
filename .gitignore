@@ -136,3 +136,5 @@ contrib/devtools/split-debug.sh
 src/.vscode/
 .vscode/
 just*.sh
+
+src/.clang-format
