@@ -95,7 +95,6 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, bool ge
         }
     }
     
-
     int nShift = (blockindex->nBits >> 24) & 0xff;
     double dDiff =
         (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
@@ -457,7 +456,6 @@ UniValue gethivedifficulty(const JSONRPCRequest& request)
             "Error: The Hive is not yet enabled on the network"
         );
 
-
     LOCK(cs_main);
     return GetDifficulty(nullptr, true);
 }
@@ -616,7 +614,7 @@ UniValue getmempoolancestors(const JSONRPCRequest& request)
     CTxMemPool::setEntries setAncestors;
     uint64_t noLimit = std::numeric_limits<uint64_t>::max();
     std::string dummy;
-    mempool.CalculateMemPoolAncestors(*it, setAncestors, noLimit, noLimit, noLimit, noLimit, dummy, false);
+    mempool.CalculateMemPoolAncestors(*it, setAncestors, noLimit, noLimit, noLimit, noLimit, dummy);
 
     if (!fVerbose) {
         UniValue o(UniValue::VARR);
@@ -773,7 +771,7 @@ UniValue getblockheader(const JSONRPCRequest& request)
             "\nResult (for verbose = true):\n"
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
-            "  \"type\" : \"hive\"|\"pow\", (string) Indicates whether this block is hive or pow mined\n"   // LitecoinCash: Hive 1.1: Include block type            
+            "  \"type\" : \"hive\"|\"pow\", (string) Indicates whether this block is hive or pow mined\n"   // LitecoinCash: Hive 1.1: Include block type
             "  \"powtype\" : \"sha256d\"|\"minotaurx\"|\"unrecognised\", (string) Indicates the pow mining type of the block\n"   // LitecoinCash: MinotaurX+Hive1.2: Include pow type
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"height\" : n,          (numeric) The block height or index\n"
@@ -1679,7 +1677,7 @@ UniValue getchaintxstats(const JSONRPCRequest& request)
             pindex = chainActive.Tip();
         }
     }
-    
+
     assert(pindex != nullptr);
 
     if (request.params[0].isNull()) {

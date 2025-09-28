@@ -33,7 +33,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <openssl/sha.h>
-#include <sys/endian.h>
+#include <stdlib.h>
 
 #if defined(USE_SSE2) && !defined(USE_SSE2_ALWAYS)
 #ifdef _MSC_VER
@@ -45,13 +45,16 @@
 #endif
 #endif
 #if !defined(__FreeBSD__) && !defined(__APPLE__)
+#if !defined(HAVE_BE32DEC)
 static inline uint32_t be32dec(const void *pp)
 {
 	const uint8_t *p = (uint8_t const *)pp;
 	return ((uint32_t)(p[3]) + ((uint32_t)(p[2]) << 8) +
 	    ((uint32_t)(p[1]) << 16) + ((uint32_t)(p[0]) << 24));
 }
+#endif
 
+#if !defined(HAVE_BE32ENC)
 static inline void be32enc(void *pp, uint32_t x)
 {
 	uint8_t *p = (uint8_t *)pp;
@@ -60,7 +63,23 @@ static inline void be32enc(void *pp, uint32_t x)
 	p[1] = (x >> 16) & 0xff;
 	p[0] = (x >> 24) & 0xff;
 }
-
+#endif
+#else
+#if defined(__FreeBSD__) || defined(__APPLE__)
+#include <compat/endian.h>
+#endif
+#if !defined(HAVE_BE32DEC)
+#define be32dec(p) be32toh(*((uint32_t*)(p)))
+#endif
+#if !defined(HAVE_BE32ENC)
+#define be32enc(p, x) *((uint32_t*)(p)) = htobe32(x)
+#endif
+#if !defined(HAVE_LE32DEC)
+#define le32dec(p) le32toh(*((uint32_t*)(p)))
+#endif
+#if !defined(HAVE_LE32ENC)
+#define le32enc(p, x) *((uint32_t*)(p)) = htole32(x)
+#endif
 #endif
 typedef struct HMAC_SHA256Context {
 	SHA256_CTX ictx;

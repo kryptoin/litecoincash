@@ -2,45 +2,45 @@
 
 *.exe
 src/litecoincash
-src/litecoincashd
 src/litecoincash-cli
 src/litecoincash-tx
+src/litecoincashd
+src/qt/test/test_litecoincash-qt
 src/test/test_litecoincash
 src/test/test_litecoincash_fuzzy
-src/qt/test/test_litecoincash-qt
 
 # autoreconf
 Makefile.in
 aclocal.m4
 autom4te.cache/
+build-aux/compile
 build-aux/config.guess
 build-aux/config.sub
 build-aux/depcomp
 build-aux/install-sh
 build-aux/ltmain.sh
 build-aux/m4/libtool.m4
-build-aux/m4/lt~obsolete.m4
 build-aux/m4/ltoptions.m4
 build-aux/m4/ltsugar.m4
 build-aux/m4/ltversion.m4
+build-aux/m4/lt~obsolete.m4
 build-aux/missing
-build-aux/compile
 build-aux/test-driver
 config.log
 config.status
 configure
 libtool
+share/qt/Info.plist
+share/setup.nsi
 src/config/bitcoin-config.h
 src/config/bitcoin-config.h.in
 src/config/stamp-h1
-share/setup.nsi
-share/qt/Info.plist
 
 src/univalue/gen
 
 src/qt/*.moc
-src/qt/moc_*.cpp
 src/qt/forms/ui_*.h
+src/qt/moc_*.cpp
 
 src/qt/test/moc*.cpp
 
@@ -50,28 +50,26 @@ src/qt/bitcoin-qt.creator.user
 src/qt/bitcoin-qt.files
 src/qt/bitcoin-qt.includes
 
+*.*~*
+*.a
+*.bak
+*.dmg
+*.json.h
+*.log
+*.o
+*.o-*
+*.orig
+*.patch
+*.pb.cc
+*.pb.h
+*.pyc
+*.raw.h
+*.rej
+*.trs
+.*.swp
 .deps
 .dirstamp
 .libs
-.*.swp
-*.*~*
-*.bak
-*.rej
-*.orig
-*.pyc
-*.o
-*.o-*
-*.patch
-*.a
-*.pb.cc
-*.pb.h
-
-*.log
-*.trs
-*.dmg
-
-*.json.h
-*.raw.h
 
 #libtool object files
 *.lo
@@ -126,15 +124,15 @@ linux-build
 win32-build
 test/config.ini
 test/cache/*
+build-m2.sh
 
 !src/leveldb*/Makefile
 
-/doc/doxygen/
-
-libbitcoinconsensus.pc
-contrib/devtools/split-debug.sh
-src/.vscode/
 .vscode/
-just*.sh
 
+/doc/doxygen/
+contrib/devtools/split-debug.sh
+just*.sh
+libbitcoinconsensus.pc
 src/.clang-format
+src/.vscode/
