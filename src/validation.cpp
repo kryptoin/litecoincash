@@ -1566,7 +1566,6 @@ bool CChainState::ConnectBlock(const CBlock &block, CValidationState &state,
   if (!hashAssumeValid.IsNull()) {
     BlockMap::const_iterator it = mapBlockIndex.find(hashAssumeValid);
     if (it != mapBlockIndex.end()) {
-
       bool bestHeaderMatches = false;
       if (pindexBestHeader != nullptr) {
         CBlockIndex *bhAncestor =
@@ -1576,7 +1575,6 @@ bool CChainState::ConnectBlock(const CBlock &block, CValidationState &state,
       }
       if (it->second->GetAncestor(pindex->nHeight) == pindex &&
           bestHeaderMatches) {
-
         fScriptChecks =
             (GetBlockProofEquivalentTime(
                  *pindexBestHeader, *pindex, *pindexBestHeader,
@@ -2034,7 +2032,6 @@ bool CChainState::DisconnectTip(CValidationState &state,
     }
 
     if (disconnectpool) {
-
       for (const auto &tx : block.vtx) {
         disconnectpool->addTransaction(tx);
       }
@@ -2329,7 +2326,6 @@ bool CChainState::ActivateBestChainStep(
       pindexIter = pindexIter->pprev;
     }
     nHeight = nTargetHeight;
-
     for (CBlockIndex *pindexConnect : reverse_iterate(vpindexToConnect)) {
       if (!ConnectTip(state, chainparams, pindexConnect,
                       pindexConnect == pindexMostWork
@@ -2349,11 +2345,14 @@ bool CChainState::ActivateBestChainStep(
         }
       } else {
         PruneBlockIndexCandidates();
+
+        /*
         if (!pindexOldTip ||
             chainActive.Tip()->nChainWork > pindexOldTip->nChainWork) {
           fContinue = false;
           break;
         }
+        */
       }
     }
   }
@@ -2396,13 +2395,11 @@ bool CChainState::ActivateBestChain(CValidationState &state,
                                     const CChainParams &chainparams,
                                     std::shared_ptr<const CBlock> pblock) {
   AssertLockNotHeld(cs_main);
-
   CBlockIndex *pindexMostWork = nullptr;
   CBlockIndex *pindexNewTip = nullptr;
   int nStopAtHeight = gArgs.GetArg("-stopatheight", DEFAULT_STOPATHEIGHT);
   do {
     boost::this_thread::interruption_point();
-
     if (GetMainSignals().CallbacksPending() > 10) {
       SyncWithValidationInterfaceQueue();
     }
@@ -2414,13 +2411,11 @@ bool CChainState::ActivateBestChain(CValidationState &state,
       ConnectTrace connectTrace(mempool);
 
       CBlockIndex *pindexOldTip = chainActive.Tip();
-      if (pindexMostWork == nullptr) {
-        pindexMostWork = FindMostWorkChain();
-      }
+
+      pindexMostWork = FindMostWorkChain();
 
       if (pindexMostWork == nullptr || pindexMostWork == chainActive.Tip())
         return true;
-
       bool fInvalidFound = false;
       std::shared_ptr<const CBlock> nullBlockPtr;
       if (!ActivateBestChainStep(state, chainparams, pindexMostWork,
@@ -2430,14 +2425,12 @@ bool CChainState::ActivateBestChain(CValidationState &state,
                                      : nullBlockPtr,
                                  fInvalidFound, connectTrace))
         return false;
-
       if (fInvalidFound) {
         pindexMostWork = nullptr;
       }
       pindexNewTip = chainActive.Tip();
       pindexFork = chainActive.FindFork(pindexOldTip);
       fInitialDownload = IsInitialBlockDownload();
-
       for (const PerBlockConnectTrace &trace :
            connectTrace.GetBlocksConnected()) {
         assert(trace.pblock && trace.pindex);
@@ -2448,25 +2441,23 @@ bool CChainState::ActivateBestChain(CValidationState &state,
 
     GetMainSignals().UpdatedBlockTip(pindexNewTip, pindexFork,
                                      fInitialDownload);
-
     if (pindexFork != pindexNewTip) {
       uiInterface.NotifyBlockTip(fInitialDownload, pindexNewTip);
     }
 
     if (nStopAtHeight && pindexNewTip && pindexNewTip->nHeight >= nStopAtHeight)
       StartShutdown();
-
     if (ShutdownRequested())
       break;
   } while (pindexNewTip != pindexMostWork);
   CheckBlockIndex(chainparams.GetConsensus());
-
   if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_PERIODIC)) {
     return false;
   }
 
   return true;
 }
+
 bool ActivateBestChain(CValidationState &state, const CChainParams &chainparams,
                        std::shared_ptr<const CBlock> pblock) {
   return g_chainstate.ActivateBestChain(state, chainparams, std::move(pblock));
