@@ -8,15 +8,15 @@
 #include <config/bitcoin-config.h>
 #endif
 
-#include <net.h>
-
 #include <boost/optional.hpp>
 #include <chainparams.h>
 #include <clientversion.h>
 #include <consensus/consensus.h>
 #include <crypto/common.h>
 #include <crypto/sha256.h>
+#include <net.h>
 #include <netbase.h>
+#include <netdb.h>
 #include <primitives/transaction.h>
 #include <scheduler.h>
 #include <ui_interface.h>
@@ -73,9 +73,11 @@ static const uint64_t RANDOMIZER_ID_LOCALHOSTNONCE = 0xd93e69e2bbfa5735ULL;
 bool fDiscover = true;
 bool fListen = true;
 bool fRelayTxes = true;
+
 CCriticalSection cs_mapLocalHost;
-std::map<CNetAddr, LocalServiceInfo> mapLocalHost;
 static bool vfLimited[NET_MAX] = {};
+
+std::map<CNetAddr, LocalServiceInfo> mapLocalHost;
 std::string strSubVersion;
 
 limitedmap<uint256, int64_t> mapAlreadyAskedFor(MAX_INV_SZ);
@@ -109,6 +111,75 @@ bool GetLocal(CService &addr, const CNetAddr *paddrPeer) {
     }
   }
   return nBestScore >= 0;
+}
+
+bool ReverseDNSValidation(const CService &addr) {
+  if (!addr.IsRoutable()) {
+    LogPrint(BCLog::NET, "P2P: Allowing non-routable address %s\n",
+             addr.ToString());
+    return true;
+  }
+
+  char h_name[NI_MAXHOST];
+  struct sockaddr_storage sa;
+  socklen_t len = sizeof(sa);
+
+  if (!addr.GetSockAddr((struct sockaddr *)&sa, &len)) {
+    LogPrint(BCLog::NET, "P2P: Failed to get socket address for %s\n",
+             addr.ToString());
+    return false;
+  }
+
+  int flags = NI_NAMEREQD;
+
+#ifdef AI_IDN
+
+  flags |= NI_IDN;
+#endif
+
+  int ret = getnameinfo((struct sockaddr *)&sa, len, h_name, sizeof(h_name),
+                        nullptr, 0, flags);
+
+  if (ret != 0) {
+    if (ret == EAI_NONAME || ret == EAI_NODATA) {
+      LogPrint(BCLog::NET,
+               "P2P: Reverse DNS lookup failed for %s (no hostname found)\n",
+               addr.ToString());
+    } else if (ret == EAI_AGAIN) {
+      LogPrint(BCLog::NET,
+               "P2P: Reverse DNS lookup temporarily unavailable for %s\n",
+               addr.ToString());
+    } else if (ret == EAI_SYSTEM) {
+      LogPrint(BCLog::NET, "P2P: Reverse DNS lookup system error for %s: %s\n",
+               addr.ToString(), strerror(errno));
+    } else {
+      LogPrint(BCLog::NET, "P2P: Reverse DNS lookup failed for %s (error %d)\n",
+               addr.ToString(), ret);
+    }
+    return false;
+  }
+
+  std::vector<CNetAddr> vips;
+  if (!LookupHost(h_name, vips, 1, false)) {
+    LogPrint(BCLog::NET,
+             "P2P: Forward DNS lookup failed for hostname %s (from %s)\n",
+             h_name, addr.ToString());
+    return false;
+  }
+
+  for (const CNetAddr &resolved_addr : vips) {
+    if (static_cast<CNetAddr>(addr) == resolved_addr) {
+      LogPrint(BCLog::NET, "P2P: Validated peer %s -> %s\n", addr.ToString(),
+               h_name);
+      return true;
+    }
+  }
+
+  LogPrint(BCLog::NET,
+           "P2P: DNS validation failed for %s: reverse lookup gave %s but "
+           "forward lookup did not resolve back to original IP\n",
+           addr.ToString(), h_name);
+  return false;
 }
 
 static std::vector<CAddress>
@@ -844,14 +915,13 @@ struct NodeEvictionCandidate {
 
 bool CConnman::AttemptToEvictConnection() {
   std::vector<NodeEvictionCandidate> vEvictionCandidates;
+  std::map<uint64_t, int> mapNetGroupCount;
+
   {
     LOCK(cs_vNodes);
-    for (const CNode *node : vNodes) {
-      if (node->fWhitelisted) {
-        continue;
-      }
 
-      if (node->fDisconnect) {
+    for (const CNode *node : vNodes) {
+      if (node->fWhitelisted || node->fDisconnect) {
         continue;
       }
 
@@ -865,13 +935,12 @@ bool CConnman::AttemptToEvictConnection() {
            .m_relays_txs = node->fRelayTxes,
            .nKeyedNetGroup = node->nKeyedNetGroup,
            .m_is_local = IsLocal(node->addr),
-
            .prefer_evict = node->fFeeler || node->fOneShot,
-
            .conn_type =
                node->fInbound
                    ? "inbound"
                    : (node->m_manual_connection ? "manual" : "outbound")});
+      mapNetGroupCount[node->nKeyedNetGroup]++;
     }
   }
 
@@ -879,58 +948,41 @@ bool CConnman::AttemptToEvictConnection() {
     return false;
   }
 
-  std::set<NodeId> protected_peers;
-
-  std::sort(vEvictionCandidates.begin(), vEvictionCandidates.end(),
-            [](const NodeEvictionCandidate &a, const NodeEvictionCandidate &b) {
-              return a.m_connected < b.m_connected;
-            });
-
-  for (size_t i = 0; i < std::min((size_t)2, vEvictionCandidates.size()); ++i) {
-    protected_peers.insert(vEvictionCandidates[i].id);
-  }
-
-  std::sort(vEvictionCandidates.begin(), vEvictionCandidates.end(),
-            [](const NodeEvictionCandidate &a, const NodeEvictionCandidate &b) {
-              return a.m_min_ping_time < b.m_min_ping_time;
-            });
-
-  for (size_t i = 0; i < std::min((size_t)2, vEvictionCandidates.size()); ++i) {
-    protected_peers.insert(vEvictionCandidates[i].id);
-  }
-
-  std::sort(vEvictionCandidates.begin(), vEvictionCandidates.end(),
-            [](const NodeEvictionCandidate &a, const NodeEvictionCandidate &b) {
-              if (a.m_last_block_time != b.m_last_block_time)
-                return a.m_last_block_time > b.m_last_block_time;
-              if (a.fRelevantServices != b.fRelevantServices)
-                return a.fRelevantServices;
-              return a.m_connected < b.m_connected;
-            });
-
-  for (size_t i = 0; i < std::min((size_t)2, vEvictionCandidates.size()); ++i) {
-    protected_peers.insert(vEvictionCandidates[i].id);
-  }
-
   boost::optional<NodeId> node_to_evict;
-  int highest_eviction_score = -1;
+  double highest_eviction_score = -1.0;
 
   for (const auto &candidate : vEvictionCandidates) {
-    if (protected_peers.count(candidate.id)) {
-      continue;
+    double current_score = 0.0;
+
+    if (candidate.prefer_evict) {
+      current_score += 1000.0;
     }
 
-    int current_score = 0;
-    if (candidate.prefer_evict)
-      current_score += 1000;
+    if (candidate.conn_type == "inbound") {
+      current_score += 100.0;
+    }
 
-    if (candidate.conn_type == "inbound")
-      current_score += 100;
+    if (!candidate.fRelevantServices) {
+      current_score += 200.0;
+    }
 
-    if (candidate.m_is_local)
-      current_score += 50;
+    int group_count = mapNetGroupCount[candidate.nKeyedNetGroup];
+    if (group_count > 1) {
+      current_score += 50.0 * (group_count * group_count);
+    }
 
-    current_score += (GetTime() - candidate.m_connected);
+    int64_t now = GetTime();
+    int64_t seconds_since_block = now - candidate.m_last_block_time;
+    int64_t seconds_since_tx = now - candidate.m_last_tx_time;
+
+    if (seconds_since_block > 0) {
+      current_score += seconds_since_block / 60.0;
+    }
+    if (seconds_since_tx > 0) {
+      current_score += seconds_since_tx / 600.0;
+    }
+
+    current_score += GetRand(10) / 100.0;
 
     if (current_score > highest_eviction_score) {
       highest_eviction_score = current_score;
@@ -943,10 +995,9 @@ bool CConnman::AttemptToEvictConnection() {
   }
 
   LOCK(cs_vNodes);
-
   for (CNode *pnode : vNodes) {
     if (pnode->GetId() == *node_to_evict) {
-      LogPrint(BCLog::NET, "Evicting peer %d (score=%d)\n", pnode->GetId(),
+      LogPrint(BCLog::NET, "Evicting peer %d (score=%.2f)\n", pnode->GetId(),
                highest_eviction_score);
       pnode->fDisconnect = true;
       return true;
@@ -961,30 +1012,50 @@ void CConnman::AcceptConnection(const ListenSocket &hListenSocket) {
   socklen_t len = sizeof(sockaddr);
   SOCKET hSocket =
       accept(hListenSocket.socket, (struct sockaddr *)&sockaddr, &len);
-  CAddress addr;
-  int nInbound = 0;
-  int nMaxInbound = nMaxConnections - (nMaxOutbound + nMaxFeeler);
 
-  if (hSocket != INVALID_SOCKET) {
-    if (!addr.SetSockAddr((const struct sockaddr *)&sockaddr)) {
-      LogPrintf("Warning: Unknown socket family\n");
-    }
+  if (hSocket == INVALID_SOCKET) {
+#ifdef WIN32
+    int nErr = WSAGetLastError();
+#else
+    int nErr = errno;
+#endif
+    if (nErr != EWOULDBLOCK)
+      LogPrintf("socket error accept failed: %s\n", NetworkErrorString(nErr));
+    return;
+  }
+
+  CAddress addr;
+  if (!addr.SetSockAddr((const struct sockaddr *)&sockaddr)) {
+    LogPrintf("Warning: Unknown socket family from connection\n");
+    CloseSocket(hSocket);
+    return;
   }
 
   bool whitelisted = hListenSocket.whitelisted || IsWhitelistedRange(addr);
+
+  if (!whitelisted) {
+    LogPrintf("AcceptConnection() called for %s\n", addr.ToString());
+    LogPrintf("Whitelisted=%d\n", whitelisted);
+    bool result = ReverseDNSValidation(addr);
+    LogPrintf("ReverseDNSValidation() returned %d\n", result);
+
+    if (!ReverseDNSValidation(addr)) {
+      LogPrint(BCLog::NET,
+               "connection from %s dropped (no valid reverse DNS)\n",
+               addr.ToString());
+      CloseSocket(hSocket);
+      return;
+    }
+  }
+
+  int nInbound = 0;
+  int nMaxInbound = nMaxConnections - (nMaxOutbound + nMaxFeeler);
   {
     LOCK(cs_vNodes);
     for (const CNode *pnode : vNodes) {
       if (pnode->fInbound)
         nInbound++;
     }
-  }
-
-  if (hSocket == INVALID_SOCKET) {
-    int nErr = WSAGetLastError();
-    if (nErr != WSAEWOULDBLOCK)
-      LogPrintf("socket error accept failed: %s\n", NetworkErrorString(nErr));
-    return;
   }
 
   if (!fNetworkActive) {
@@ -1010,6 +1081,29 @@ void CConnman::AcceptConnection(const ListenSocket &hListenSocket) {
     return;
   }
 
+  if (!whitelisted) {
+    int nConnectionsFromGroup = 0;
+    uint64_t nKeyedNetGroup = CalculateKeyedNetGroup(addr);
+    {
+      LOCK(cs_vNodes);
+      for (const CNode *pnode : vNodes) {
+        if (pnode->addr.GetGroup() == addr.GetGroup() && pnode->fInbound) {
+          nConnectionsFromGroup++;
+        }
+      }
+    }
+
+    int nMaxConnectionsPerGroup =
+        (int)gArgs.GetArg("-maxconnectionspergroup", 5);
+    if (nConnectionsFromGroup >= nMaxConnectionsPerGroup) {
+      LogPrint(BCLog::NET,
+               "connection from %s dropped (too many connections from group)\n",
+               addr.ToString());
+      CloseSocket(hSocket);
+      return;
+    }
+  }
+
   if (nInbound >= nMaxInbound) {
     if (!AttemptToEvictConnection()) {
       LogPrint(
@@ -1025,16 +1119,13 @@ void CConnman::AcceptConnection(const ListenSocket &hListenSocket) {
                        .Write(id)
                        .Finalize();
   CAddress addr_bind = GetBindAddress(hSocket);
-
   CNode *pnode =
       new CNode(id, nLocalServices, GetBestHeight(), hSocket, addr,
                 CalculateKeyedNetGroup(addr), nonce, addr_bind, "", true);
   pnode->AddRef();
   pnode->fWhitelisted = whitelisted;
   m_msgproc->InitializeNode(pnode);
-
   LogPrint(BCLog::NET, "connection from %s accepted\n", addr.ToString());
-
   {
     LOCK(cs_vNodes);
     vNodes.push_back(pnode);

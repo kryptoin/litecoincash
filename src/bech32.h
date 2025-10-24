@@ -13,13 +13,9 @@
 #include <string>
 #include <vector>
 
-namespace bech32
-{
+namespace bech32 {
+std::string Encode(const std::string &hrp, const std::vector<uint8_t> &values);
 
-/** Encode a Bech32 string. Returns the empty string in case of failure. */
-std::string Encode(const std::string& hrp, const std::vector<uint8_t>& values);
-
-/** Decode a Bech32 string. Returns (hrp, data). Empty hrp means failure. */
-std::pair<std::string, std::vector<uint8_t>> Decode(const std::string& str);
+std::pair<std::string, std::vector<uint8_t>> Decode(const std::string &str);
 
 } // namespace bech32

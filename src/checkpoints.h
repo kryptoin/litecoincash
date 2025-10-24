@@ -12,16 +12,9 @@
 class CBlockIndex;
 struct CCheckpointData;
 
-/**
- * Block-chain checkpoints are compiled-in sanity checks.
- * They are updated every release or three.
- */
-namespace Checkpoints
-{
+namespace Checkpoints {
+CBlockIndex *GetLastCheckpoint(const CCheckpointData &data);
 
-//! Returns last CBlockIndex* in mapBlockIndex that is a checkpoint
-CBlockIndex* GetLastCheckpoint(const CCheckpointData& data);
+}
 
-} //namespace Checkpoints
-
-#endif // BITCOIN_CHECKPOINTS_H
+#endif

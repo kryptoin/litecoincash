@@ -8,24 +8,18 @@
 
 #include <stdint.h>
 
-/** Amount in satoshis (Can be negative) */
 typedef int64_t CAmount;
 
-static const CAmount COIN_SCALE = 10;                   // LitecoinCash: 10:1 coinswap
+static const CAmount COIN_SCALE = 10;
 
-static const CAmount COIN = 100000000 / COIN_SCALE;     // LitecoinCash: Account for coinscale
-static const CAmount CENT = 1000000 / COIN_SCALE;       // LitecoinCash: Account for coinscale
+static const CAmount COIN = 100000000 / COIN_SCALE;
 
-/** No amount larger than this (in satoshi) is valid.
- *
- * Note that this constant is *not* the total money supply, which in Bitcoin
- * currently happens to be less than 21,000,000 BTC for various reasons, but
- * rather a sanity check. As this sanity check is used by consensus-critical
- * validation code, the exact value of the MAX_MONEY constant is consensus
- * critical; in unusual circumstances like a(nother) overflow bug that allowed
- * for the creation of coins out of thin air modification could lead to a fork.
- * */
-static const CAmount MAX_MONEY = 84000000 * COIN * COIN_SCALE; // LitecoinCash: Account for coinscale
-inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
+static const CAmount CENT = 1000000 / COIN_SCALE;
 
-#endif //  BITCOIN_AMOUNT_H
+static const CAmount MAX_MONEY = 84000000 * COIN * COIN_SCALE;
+
+inline bool MoneyRange(const CAmount &nValue) {
+  return (nValue >= 0 && nValue <= MAX_MONEY);
+}
+
+#endif

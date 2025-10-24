@@ -15,111 +15,96 @@
 class CWallet;
 class CBlockIndex;
 
-/** General change type (added, updated, removed). */
-enum ChangeType
-{
-    CT_NEW,
-    CT_UPDATED,
-    CT_DELETED
-};
+enum ChangeType { CT_NEW, CT_UPDATED, CT_DELETED };
 
-/** Signals for UI communication. */
-class CClientUIInterface
-{
+class CClientUIInterface {
 public:
-    /** Flags for CClientUIInterface::ThreadSafeMessageBox */
-    enum MessageBoxFlags
-    {
-        ICON_INFORMATION    = 0,
-        ICON_WARNING        = (1U << 0),
-        ICON_ERROR          = (1U << 1),
-        /**
-         * Mask of all available icons in CClientUIInterface::MessageBoxFlags
-         * This needs to be updated, when icons are changed there!
-         */
-        ICON_MASK = (ICON_INFORMATION | ICON_WARNING | ICON_ERROR),
+  enum MessageBoxFlags {
+    ICON_INFORMATION = 0,
+    ICON_WARNING = (1U << 0),
+    ICON_ERROR = (1U << 1),
 
-        /** These values are taken from qmessagebox.h "enum StandardButton" to be directly usable */
-        BTN_OK      = 0x00000400U, // QMessageBox::Ok
-        BTN_YES     = 0x00004000U, // QMessageBox::Yes
-        BTN_NO      = 0x00010000U, // QMessageBox::No
-        BTN_ABORT   = 0x00040000U, // QMessageBox::Abort
-        BTN_RETRY   = 0x00080000U, // QMessageBox::Retry
-        BTN_IGNORE  = 0x00100000U, // QMessageBox::Ignore
-        BTN_CLOSE   = 0x00200000U, // QMessageBox::Close
-        BTN_CANCEL  = 0x00400000U, // QMessageBox::Cancel
-        BTN_DISCARD = 0x00800000U, // QMessageBox::Discard
-        BTN_HELP    = 0x01000000U, // QMessageBox::Help
-        BTN_APPLY   = 0x02000000U, // QMessageBox::Apply
-        BTN_RESET   = 0x04000000U, // QMessageBox::Reset
-        /**
-         * Mask of all available buttons in CClientUIInterface::MessageBoxFlags
-         * This needs to be updated, when buttons are changed there!
-         */
-        BTN_MASK = (BTN_OK | BTN_YES | BTN_NO | BTN_ABORT | BTN_RETRY | BTN_IGNORE |
-                    BTN_CLOSE | BTN_CANCEL | BTN_DISCARD | BTN_HELP | BTN_APPLY | BTN_RESET),
+    ICON_MASK = (ICON_INFORMATION | ICON_WARNING | ICON_ERROR),
 
-        /** Force blocking, modal message box dialog (not just OS notification) */
-        MODAL               = 0x10000000U,
+    BTN_OK = 0x00000400U,
 
-        /** Do not print contents of message to debug log */
-        SECURE              = 0x40000000U,
+    BTN_YES = 0x00004000U,
 
-        /** Predefined combinations for certain default usage cases */
-        MSG_INFORMATION = ICON_INFORMATION,
-        MSG_WARNING = (ICON_WARNING | BTN_OK | MODAL),
-        MSG_ERROR = (ICON_ERROR | BTN_OK | MODAL)
-    };
+    BTN_NO = 0x00010000U,
 
-    /** Show message box. */
-    boost::signals2::signal<bool (const std::string& message, const std::string& caption, unsigned int style), boost::signals2::last_value<bool> > ThreadSafeMessageBox;
+    BTN_ABORT = 0x00040000U,
 
-    /** If possible, ask the user a question. If not, falls back to ThreadSafeMessageBox(noninteractive_message, caption, style) and returns false. */
-    boost::signals2::signal<bool (const std::string& message, const std::string& noninteractive_message, const std::string& caption, unsigned int style), boost::signals2::last_value<bool> > ThreadSafeQuestion;
+    BTN_RETRY = 0x00080000U,
 
-    /** Progress message during initialization. */
-    boost::signals2::signal<void (const std::string &message)> InitMessage;
+    BTN_IGNORE = 0x00100000U,
 
-    /** Number of network connections changed. */
-    boost::signals2::signal<void (int newNumConnections)> NotifyNumConnectionsChanged;
+    BTN_CLOSE = 0x00200000U,
 
-    /** Network activity state changed. */
-    boost::signals2::signal<void (bool networkActive)> NotifyNetworkActiveChanged;
+    BTN_CANCEL = 0x00400000U,
 
-    /**
-     * Status bar alerts changed.
-     */
-    boost::signals2::signal<void ()> NotifyAlertChanged;
+    BTN_DISCARD = 0x00800000U,
 
-    /** A wallet has been loaded. */
-    boost::signals2::signal<void (CWallet* wallet)> LoadWallet;
+    BTN_HELP = 0x01000000U,
 
-    /**
-     * Show progress e.g. for verifychain.
-     * resume_possible indicates shutting down now will result in the current progress action resuming upon restart.
-     */
-    boost::signals2::signal<void (const std::string &title, int nProgress, bool resume_possible)> ShowProgress;
+    BTN_APPLY = 0x02000000U,
 
-    /** New block has been accepted */
-    boost::signals2::signal<void (bool, const CBlockIndex *)> NotifyBlockTip;
+    BTN_RESET = 0x04000000U,
 
-    /** Best header has changed */
-    boost::signals2::signal<void (bool, const CBlockIndex *)> NotifyHeaderTip;
+    BTN_MASK = (BTN_OK | BTN_YES | BTN_NO | BTN_ABORT | BTN_RETRY | BTN_IGNORE |
+                BTN_CLOSE | BTN_CANCEL | BTN_DISCARD | BTN_HELP | BTN_APPLY |
+                BTN_RESET),
 
-    /** Banlist did change. */
-    boost::signals2::signal<void (void)> BannedListChanged;
+    MODAL = 0x10000000U,
+
+    SECURE = 0x40000000U,
+
+    MSG_INFORMATION = ICON_INFORMATION,
+    MSG_WARNING = (ICON_WARNING | BTN_OK | MODAL),
+    MSG_ERROR = (ICON_ERROR | BTN_OK | MODAL)
+  };
+
+  boost::signals2::signal<bool(const std::string &message,
+                               const std::string &caption, unsigned int style),
+                          boost::signals2::last_value<bool>>
+      ThreadSafeMessageBox;
+
+  boost::signals2::signal<bool(const std::string &message,
+                               const std::string &noninteractive_message,
+                               const std::string &caption, unsigned int style),
+                          boost::signals2::last_value<bool>>
+      ThreadSafeQuestion;
+
+  boost::signals2::signal<void(const std::string &message)> InitMessage;
+
+  boost::signals2::signal<void(int newNumConnections)>
+      NotifyNumConnectionsChanged;
+
+  boost::signals2::signal<void(bool networkActive)> NotifyNetworkActiveChanged;
+
+  boost::signals2::signal<void()> NotifyAlertChanged;
+
+  boost::signals2::signal<void(CWallet *wallet)> LoadWallet;
+
+  boost::signals2::signal<void(const std::string &title, int nProgress,
+                               bool resume_possible)>
+      ShowProgress;
+
+  boost::signals2::signal<void(bool, const CBlockIndex *)> NotifyBlockTip;
+
+  boost::signals2::signal<void(bool, const CBlockIndex *)> NotifyHeaderTip;
+
+  boost::signals2::signal<void(void)> BannedListChanged;
 };
 
-/** Show warning message **/
-void InitWarning(const std::string& str);
+void InitWarning(const std::string &str);
 
-/** Show error message **/
-bool InitError(const std::string& str);
+bool InitError(const std::string &str);
 
-std::string AmountHighWarn(const std::string& optname);
+std::string AmountHighWarn(const std::string &optname);
 
-std::string AmountErrMsg(const char* const optname, const std::string& strValue);
+std::string AmountErrMsg(const char *const optname,
+                         const std::string &strValue);
 
 extern CClientUIInterface uiInterface;
 
-#endif // BITCOIN_UI_INTERFACE_H
+#endif

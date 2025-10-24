@@ -58,7 +58,6 @@ UniValue ping(const JSONRPCRequest &request) {
     throw JSONRPCError(RPC_CLIENT_P2P_DISABLED,
                        "Error: Peer-to-peer functionality missing or disabled");
 
-  // Request that each node send a ping during next message processing pass
   g_connman->ForEachNode([](CNode *pnode) { pnode->fPingQueued = true; });
   return NullUniValue;
 }
@@ -169,9 +168,7 @@ UniValue getpeerinfo(const JSONRPCRequest &request) {
     if (stats.dPingWait > 0.0)
       obj.push_back(Pair("pingwait", stats.dPingWait));
     obj.push_back(Pair("version", stats.nVersion));
-    // Use the sanitized form of subver here, to avoid tricksy remote peers from
-    // corrupting or modifying the JSON output by putting special characters in
-    // their ver message.
+
     obj.push_back(Pair("subver", stats.cleanSubVer));
     obj.push_back(Pair("inbound", stats.fInbound));
     obj.push_back(Pair("addnode", stats.m_manual_connection));
@@ -287,12 +284,10 @@ UniValue disconnectnode(const JSONRPCRequest &request) {
   const UniValue &id_arg = request.params[1];
 
   if (!address_arg.isNull() && id_arg.isNull()) {
-    /* handle disconnect-by-address */
     success = g_connman->DisconnectNode(address_arg.get_str());
   } else if (!id_arg.isNull() &&
              (address_arg.isNull() ||
               (address_arg.isStr() && address_arg.get_str().empty()))) {
-    /* handle disconnect-by-id */
     NodeId nodeid = (NodeId)id_arg.get_int64();
     success = g_connman->DisconnectNode(nodeid);
   } else {
@@ -609,7 +604,8 @@ UniValue setban(const JSONRPCRequest &request) {
       throw JSONRPCError(RPC_CLIENT_NODE_ALREADY_ADDED,
                          "Error: IP/Subnet already banned");
 
-    int64_t banTime = 0; // use standard bantime if not specified
+    int64_t banTime = 0;
+
     if (!request.params[2].isNull())
       banTime = request.params[2].get_int64();
 
@@ -695,10 +691,6 @@ UniValue setnetworkactive(const JSONRPCRequest &request) {
 }
 
 static const CRPCCommand commands[] = {
-    //  category              name                      actor (function)
-    //  argNames
-    //  --------------------- ------------------------  -----------------------
-    //  ----------
     {"network", "getconnectioncount", &getconnectioncount, {}},
     {"network", "ping", &ping, {}},
     {"network", "getpeerinfo", &getpeerinfo, {}},

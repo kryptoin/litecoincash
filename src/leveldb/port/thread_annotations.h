@@ -5,10 +5,6 @@
 #ifndef STORAGE_LEVELDB_PORT_THREAD_ANNOTATIONS_H_
 #define STORAGE_LEVELDB_PORT_THREAD_ANNOTATIONS_H_
 
-// Some environments provide custom macros to aid in static thread-safety
-// analysis.  Provide empty definitions of such macros unless they are already
-// defined.
-
 #ifndef EXCLUSIVE_LOCKS_REQUIRED
 #define EXCLUSIVE_LOCKS_REQUIRED(...)
 #endif
@@ -57,4 +53,4 @@
 #define NO_THREAD_SAFETY_ANALYSIS
 #endif
 
-#endif  // STORAGE_LEVELDB_PORT_THREAD_ANNOTATIONS_H_
+#endif

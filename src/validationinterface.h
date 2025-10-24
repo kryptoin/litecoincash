@@ -6,7 +6,7 @@
 #ifndef BITCOIN_VALIDATIONINTERFACE_H
 #define BITCOIN_VALIDATIONINTERFACE_H
 
-#include <primitives/transaction.h> // CTransaction(Ref)
+#include <primitives/transaction.h>
 
 #include <functional>
 #include <memory>
@@ -24,141 +24,91 @@ class CScheduler;
 class CTxMemPool;
 enum class MemPoolRemovalReason;
 
-// These functions dispatch to one or all registered wallets
+void RegisterValidationInterface(CValidationInterface *pwalletIn);
 
-/** Register a wallet to receive updates from core */
-void RegisterValidationInterface(CValidationInterface* pwalletIn);
-/** Unregister a wallet from core */
-void UnregisterValidationInterface(CValidationInterface* pwalletIn);
-/** Unregister all wallets from core */
+void UnregisterValidationInterface(CValidationInterface *pwalletIn);
+
 void UnregisterAllValidationInterfaces();
-/**
- * Pushes a function to callback onto the notification queue, guaranteeing any
- * callbacks generated prior to now are finished when the function is called.
- *
- * Be very careful blocking on func to be called if any locks are held -
- * validation interface clients may not be able to make progress as they often
- * wait for things like cs_main, so blocking until func is called with cs_main
- * will result in a deadlock (that DEBUG_LOCKORDER will miss).
- */
-void CallFunctionInValidationInterfaceQueue(std::function<void ()> func);
-/**
- * This is a synonym for the following, which asserts certain locks are not
- * held:
- *     std::promise<void> promise;
- *     CallFunctionInValidationInterfaceQueue([&promise] {
- *         promise.set_value();
- *     });
- *     promise.get_future().wait();
- */
+
+void CallFunctionInValidationInterfaceQueue(std::function<void()> func);
+
 void SyncWithValidationInterfaceQueue();
 
 class CValidationInterface {
 protected:
-    /**
-     * Notifies listeners of updated block chain tip
-     *
-     * Called on a background thread.
-     */
-    virtual void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) {}
-    /**
-     * Notifies listeners of a transaction having been added to mempool.
-     *
-     * Called on a background thread.
-     */
-    virtual void TransactionAddedToMempool(const CTransactionRef &ptxn) {}
-    /**
-     * Notifies listeners of a transaction leaving mempool.
-     *
-     * This only fires for transactions which leave mempool because of expiry,
-     * size limiting, reorg (changes in lock times/coinbase maturity), or
-     * replacement. This does not include any transactions which are included
-     * in BlockConnectedDisconnected either in block->vtx or in txnConflicted.
-     *
-     * Called on a background thread.
-     */
-    virtual void TransactionRemovedFromMempool(const CTransactionRef &ptx) {}
-    /**
-     * Notifies listeners of a block being connected.
-     * Provides a vector of transactions evicted from the mempool as a result.
-     *
-     * Called on a background thread.
-     */
-    virtual void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex, const std::vector<CTransactionRef> &txnConflicted) {}
-    /**
-     * Notifies listeners of a block being disconnected
-     *
-     * Called on a background thread.
-     */
-    virtual void BlockDisconnected(const std::shared_ptr<const CBlock> &block) {}
-    /**
-     * Notifies listeners of the new active block chain on-disk.
-     *
-     * Called on a background thread.
-     */
-    virtual void SetBestChain(const CBlockLocator &locator) {}
-    /**
-     * Notifies listeners about an inventory item being seen on the network.
-     *
-     * Called on a background thread.
-     */
-    virtual void Inventory(const uint256 &hash) {}
-    /** Tells listeners to broadcast their data. */
-    virtual void ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman) {}
-    /**
-     * Notifies listeners of a block validation result.
-     * If the provided CValidationState IsValid, the provided block
-     * is guaranteed to be the current best block at the time the
-     * callback was generated (not necessarily now)
-     */
-    virtual void BlockChecked(const CBlock&, const CValidationState&) {}
-    /**
-     * Notifies listeners that a block which builds directly on our current tip
-     * has been received and connected to the headers tree, though not validated yet */
-    virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {};
-    friend void ::RegisterValidationInterface(CValidationInterface*);
-    friend void ::UnregisterValidationInterface(CValidationInterface*);
-    friend void ::UnregisterAllValidationInterfaces();
+  virtual void UpdatedBlockTip(const CBlockIndex *pindexNew,
+                               const CBlockIndex *pindexFork,
+                               bool fInitialDownload) {}
+
+  virtual void TransactionAddedToMempool(const CTransactionRef &ptxn) {}
+
+  virtual void TransactionRemovedFromMempool(const CTransactionRef &ptx) {}
+
+  virtual void
+  BlockConnected(const std::shared_ptr<const CBlock> &block,
+                 const CBlockIndex *pindex,
+                 const std::vector<CTransactionRef> &txnConflicted) {}
+
+  virtual void BlockDisconnected(const std::shared_ptr<const CBlock> &block) {}
+
+  virtual void SetBestChain(const CBlockLocator &locator) {}
+
+  virtual void Inventory(const uint256 &hash) {}
+
+  virtual void ResendWalletTransactions(int64_t nBestBlockTime,
+                                        CConnman *connman) {}
+
+  virtual void BlockChecked(const CBlock &, const CValidationState &) {}
+
+  virtual void NewPoWValidBlock(const CBlockIndex *pindex,
+                                const std::shared_ptr<const CBlock> &block) {};
+  friend void ::RegisterValidationInterface(CValidationInterface *);
+  friend void ::UnregisterValidationInterface(CValidationInterface *);
+  friend void ::UnregisterAllValidationInterfaces();
 };
 
 struct MainSignalsInstance;
 class CMainSignals {
 private:
-    std::unique_ptr<MainSignalsInstance> m_internals;
+  std::unique_ptr<MainSignalsInstance> m_internals;
 
-    friend void ::RegisterValidationInterface(CValidationInterface*);
-    friend void ::UnregisterValidationInterface(CValidationInterface*);
-    friend void ::UnregisterAllValidationInterfaces();
-    friend void ::CallFunctionInValidationInterfaceQueue(std::function<void ()> func);
+  friend void ::RegisterValidationInterface(CValidationInterface *);
+  friend void ::UnregisterValidationInterface(CValidationInterface *);
+  friend void ::UnregisterAllValidationInterfaces();
+  friend void ::CallFunctionInValidationInterfaceQueue(
+      std::function<void()> func);
 
-    void MempoolEntryRemoved(CTransactionRef tx, MemPoolRemovalReason reason);
+  void MempoolEntryRemoved(CTransactionRef tx, MemPoolRemovalReason reason);
 
 public:
-    /** Register a CScheduler to give callbacks which should run in the background (may only be called once) */
-    void RegisterBackgroundSignalScheduler(CScheduler& scheduler);
-    /** Unregister a CScheduler to give callbacks which should run in the background - these callbacks will now be dropped! */
-    void UnregisterBackgroundSignalScheduler();
-    /** Call any remaining callbacks on the calling thread */
-    void FlushBackgroundCallbacks();
+  void RegisterBackgroundSignalScheduler(CScheduler &scheduler);
 
-    size_t CallbacksPending();
+  void UnregisterBackgroundSignalScheduler();
 
-    /** Register with mempool to call TransactionRemovedFromMempool callbacks */
-    void RegisterWithMempoolSignals(CTxMemPool& pool);
-    /** Unregister with mempool */
-    void UnregisterWithMempoolSignals(CTxMemPool& pool);
+  void FlushBackgroundCallbacks();
 
-    void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
-    void TransactionAddedToMempool(const CTransactionRef &);
-    void BlockConnected(const std::shared_ptr<const CBlock> &, const CBlockIndex *pindex, const std::shared_ptr<const std::vector<CTransactionRef>> &);
-    void BlockDisconnected(const std::shared_ptr<const CBlock> &);
-    void SetBestChain(const CBlockLocator &);
-    void Inventory(const uint256 &);
-    void Broadcast(int64_t nBestBlockTime, CConnman* connman);
-    void BlockChecked(const CBlock&, const CValidationState&);
-    void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
+  size_t CallbacksPending();
+
+  void RegisterWithMempoolSignals(CTxMemPool &pool);
+
+  void UnregisterWithMempoolSignals(CTxMemPool &pool);
+
+  void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *,
+                       bool fInitialDownload);
+  void TransactionAddedToMempool(const CTransactionRef &);
+  void
+  BlockConnected(const std::shared_ptr<const CBlock> &,
+                 const CBlockIndex *pindex,
+                 const std::shared_ptr<const std::vector<CTransactionRef>> &);
+  void BlockDisconnected(const std::shared_ptr<const CBlock> &);
+  void SetBestChain(const CBlockLocator &);
+  void Inventory(const uint256 &);
+  void Broadcast(int64_t nBestBlockTime, CConnman *connman);
+  void BlockChecked(const CBlock &, const CValidationState &);
+  void NewPoWValidBlock(const CBlockIndex *,
+                        const std::shared_ptr<const CBlock> &);
 };
 
-CMainSignals& GetMainSignals();
+CMainSignals &GetMainSignals();
 
-#endif // BITCOIN_VALIDATIONINTERFACE_H
+#endif

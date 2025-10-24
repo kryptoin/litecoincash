@@ -11,33 +11,24 @@
 
 namespace leveldb {
 namespace test {
+extern Slice RandomString(Random *rnd, int len, std::string *dst);
 
-// Store in *dst a random string of length "len" and return a Slice that
-// references the generated data.
-extern Slice RandomString(Random* rnd, int len, std::string* dst);
+extern std::string RandomKey(Random *rnd, int len);
 
-// Return a random key with the specified length that may contain interesting
-// characters (e.g. \x00, \xff, etc.).
-extern std::string RandomKey(Random* rnd, int len);
+extern Slice CompressibleString(Random *rnd, double compressed_fraction,
+                                size_t len, std::string *dst);
 
-// Store in *dst a string of length "len" that will compress to
-// "N*compressed_fraction" bytes and return a Slice that references
-// the generated data.
-extern Slice CompressibleString(Random* rnd, double compressed_fraction,
-                                size_t len, std::string* dst);
-
-// A wrapper that allows injection of errors.
 class ErrorEnv : public EnvWrapper {
- public:
+public:
   bool writable_file_error_;
   int num_writable_file_errors_;
 
-  ErrorEnv() : EnvWrapper(Env::Default()),
-               writable_file_error_(false),
-               num_writable_file_errors_(0) { }
+  ErrorEnv()
+      : EnvWrapper(Env::Default()), writable_file_error_(false),
+        num_writable_file_errors_(0) {}
 
-  virtual Status NewWritableFile(const std::string& fname,
-                                 WritableFile** result) {
+  virtual Status NewWritableFile(const std::string &fname,
+                                 WritableFile **result) {
     if (writable_file_error_) {
       ++num_writable_file_errors_;
       *result = NULL;
@@ -46,8 +37,8 @@ class ErrorEnv : public EnvWrapper {
     return target()->NewWritableFile(fname, result);
   }
 
-  virtual Status NewAppendableFile(const std::string& fname,
-                                   WritableFile** result) {
+  virtual Status NewAppendableFile(const std::string &fname,
+                                   WritableFile **result) {
     if (writable_file_error_) {
       ++num_writable_file_errors_;
       *result = NULL;
@@ -57,7 +48,8 @@ class ErrorEnv : public EnvWrapper {
   }
 };
 
-}  // namespace test
-}  // namespace leveldb
+} // namespace test
 
-#endif  // STORAGE_LEVELDB_UTIL_TESTUTIL_H_
+} // namespace leveldb
+
+#endif

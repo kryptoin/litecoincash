@@ -8,24 +8,22 @@
 #include <QDialog>
 
 namespace Ui {
-    class TransactionDescDialog;
+class TransactionDescDialog;
 }
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
 QT_END_NAMESPACE
 
-/** Dialog showing transaction details. */
-class TransactionDescDialog : public QDialog
-{
-    Q_OBJECT
+class TransactionDescDialog : public QDialog {
+  Q_OBJECT
 
 public:
-    explicit TransactionDescDialog(const QModelIndex &idx, QWidget *parent = 0);
-    ~TransactionDescDialog();
+  explicit TransactionDescDialog(const QModelIndex &idx, QWidget *parent = 0);
+  ~TransactionDescDialog();
 
 private:
-    Ui::TransactionDescDialog *ui;
+  Ui::TransactionDescDialog *ui;
 };
 
-#endif // BITCOIN_QT_TRANSACTIONDESCDIALOG_H
+#endif

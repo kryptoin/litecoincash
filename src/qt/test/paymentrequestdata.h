@@ -15,8 +15,8 @@
 // Subject: CN=PaymentRequest Test CA
 // Not Valid After : Dec  8 16:37:24 2022 GMT
 //
-const char* caCert1_BASE64 =
-"\
+
+const char *caCert1_BASE64 = "\
 MIIB0DCCATmgAwIBAgIJAI75TJGxEsCoMA0GCSqGSIb3DQEBCwUAMCExHzAdBgNV\
 BAMTFlBheW1lbnRSZXF1ZXN0IFRlc3QgQ0EwHhcNMTIxMjEwMTYzNzI0WhcNMjIx\
 MjA4MTYzNzI0WjAhMR8wHQYDVQQDExZQYXltZW50UmVxdWVzdCBUZXN0IENBMIGf\
@@ -29,13 +29,7 @@ RtQcf0AJ9olzUMY4syehxbzUJP6aeXhZEYiMvdvcv9D55clq6+WLLlNT3jBgAaVn\
 p3waRjPD4bUX3nv+ojz5s4puw7Qq5QUZlhGsMzPvwDGCmZkL\
 ";
 
-// Serial Number: f0:da:97:e4:38:d7:64:16
-// Issuer: CN=PaymentRequest Test CA
-// Subject: CN=PaymentRequest Test CA
-// Not Valid After : Jan  8 18:21:06 2025 GMT
-//
-const char* caCert2_BASE64 =
-"\
+const char *caCert2_BASE64 = "\
 MIIC1TCCAb2gAwIBAgIJAPDal+Q412QWMA0GCSqGSIb3DQEBCwUAMCExHzAdBgNV\
 BAMMFlBheW1lbnRSZXF1ZXN0IFRlc3QgQ0EwHhcNMTUwMTExMTgyMTA2WhcNMjUw\
 MTA4MTgyMTA2WjAhMR8wHQYDVQQDDBZQYXltZW50UmVxdWVzdCBUZXN0IENBMIIB\
@@ -54,12 +48,7 @@ z2k/tMuALCDXGeZBRPTsGHu1y4cj84swAeoDK5QSQcI+Ub7GKc+zkoj02sdDLiMo\
 9PFfmNnYPTQH\
 ";
 
-//
-// This payment request validates directly against the
-// caCert1 certificate authority.
-//
-const char* paymentrequest1_cert1_BASE64 =
-"\
+const char *paymentrequest1_cert1_BASE64 = "\
 Egt4NTA5K3NoYTI1NhrxAwruAzCCAeowggFToAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAxMWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xMjEyMTAx\
 NjM3MjRaFw0yMjEyMDgxNjM3MjRaMEMxGTAXBgNVBAMMEHRlc3RtZXJjaGFudC5v\
@@ -77,11 +66,7 @@ Yt8oZMn3QaTZ5A6HjJbc3A73eLylp1a0SwCl+KDMEvDQhqMn1jAVu2v92AH3uB7n\
 SiWVbw0tX/68iSQEGGfh9n6ee/8Myb3ICdw=\
 ";
 
-//
-// Signed, but expired, merchant cert in the request
-//
-const char* paymentrequest2_cert1_BASE64 =
-"\
+const char *paymentrequest2_cert1_BASE64 = "\
 Egt4NTA5K3NoYTI1NhrsAwrpAzCCAeUwggFOoAMCAQICAQMwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAxMWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xMzAyMjMy\
 MTI2NDNaFw0xMzAyMjQyMTI2NDNaMD4xHDAaBgNVBAMME2V4cGlyZWRtZXJjaGFu\
@@ -99,11 +84,8 @@ mm+V4seMgxTcxMS+eDDkiTcB/RtWWSyRcS2ANjFeY0T4SLMwiCL9qWPi03hr8j96\
 tejrSPOBNSJ3Mi/q5u2Yl4gJZY2b\
 ";
 
-//
-// 10-long certificate chain, all intermediates valid
-//
-const char* paymentrequest3_cert1_BASE64 =
-"\
+const char *paymentrequest3_cert1_BASE64 =
+    "\
 Egt4NTA5K3NoYTI1Nhq8JAr/AzCCAfswggFkoAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwPzEUMBIGA1UEAwwLdGVzdGNhOC5vcmcxJzAlBgNVBAoMHlBheW1lbnQgUmVx\
 dWVzdCBJbnRlcm1lZGlhdGUgODAeFw0xMzAyMjMyMjQyMzFaFw0yMzAyMjEyMjQy\
@@ -156,63 +138,92 @@ SIb3DQEBAQUAA4GNADCBiQKBgQC7vVUFpxHzz2Tr/xij3k58s8d/BPA0R6D5RXTV\
 vmhAzc1Zuin4zUKRFs/aCj/0yED8Wu/COfNGF4tVlRNMdl9EcFsxa8XGEL4eAZa+\
 H/rOHH+7/1EINrrVWhZlUecyhilN8jmCZmqEM3ecuD0NAViqyMrgmaiFmsLoQZpE\
 GepDUQIDAQABoxAwDjAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4GBAEdJ\
-Ss8jWiooja3WZzHXeF95QkBJNjIlpDLGcpl4opOYLSuEl9Uxp//LaQQiXuzpj4/I\
-pkWGQmMy5HOyH1lqDyiMgXpcG8PE0jEQAoEUGZ0QEqB1mZ6BCrYvmUuf/5aSVd8Y\
-6lKMR3WzFDYU9Zy0nzuHB/3nvp6MeDRQeRMtYvz4CogEMIICBDCCAW2gAwIBAgIB\
-AjANBgkqhkiG9w0BAQsFADA/MRQwEgYDVQQDDAt0ZXN0Y2EzLm9yZzEnMCUGA1UE\
+Ss8jWiooja3WZzHXeF95QkBJNjIlpDLGcpl4opOYLSuEl9Uxp
+
+        pkWGQmMy5HOyH1lqDyiMgXpcG8PE0jEQAoEUGZ0QEqB1mZ6BCrYvmUuf /
+        5aSVd8Y\
+6lKMR3WzFDYU9Zy0nzuHB /
+        3nvp6MeDRQeRMtYvz4CogEMIICBDCCAW2gAwIBAgIB\
+AjANBgkqhkiG9w0BAQsFADA /
+        MRQwEgYDVQQDDAt0ZXN0Y2EzLm9yZzEnMCUGA1UE\
 CgweUGF5bWVudCBSZXF1ZXN0IEludGVybWVkaWF0ZSAzMB4XDTEzMDIyMzIyNDIy\
 OVoXDTIzMDIyMTIyNDIyOVowPzEUMBIGA1UEAwwLdGVzdGNhNC5vcmcxJzAlBgNV\
 BAoMHlBheW1lbnQgUmVxdWVzdCBJbnRlcm1lZGlhdGUgNDCBnzANBgkqhkiG9w0B\
-AQEFAAOBjQAwgYkCgYEAxYYo3w2UXiYg6O8b4QgwN/vgreTkiW122Ep/z2TiDrhV\
+AQEFAAOBjQAwgYkCgYEAxYYo3w2UXiYg6O8b4QgwN /
+        vgreTkiW122Ep / z2TiDrhV\
 MhfOOiKdwYESPflfnXnVaQQzCGexYTQqsvqvzHSyna5hL0zPTRJxSKmTVrXRsWtp\
-dCRhjxCGipS3tlQBDi7vb+7SNRIBK4dBjjGzALNk7gMCpy+yM8f6I043jTlmGb0C\
-AwEAAaMQMA4wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOBgQDU+IQxt3Oh\
-KqaUYWC23+cB2gekvWqwMBnrCNrX/Dp+kjoJKUoR2Fs3qw53raHES4SIhpGT9l9l\
-rppNQgFe/JMHeYqOZMZO+6kuU0olJanBJ14tPIc7zlMTQ9OfmZ6v07IpyFbsQDtR\
+dCRhjxCGipS3tlQBDi7vb +
+    7SNRIBK4dBjjGzALNk7gMCpy + yM8f6I043jTlmGb0C\
+AwEAAaMQMA4wDAYDVR0TBAUwAwEB / zANBgkqhkiG9w0BAQsFAAOBgQDU +
+    IQxt3Oh\
+KqaUYWC23 +
+    cB2gekvWqwMBnrCNrX / Dp + kjoJKUoR2Fs3qw53raHES4SIhpGT9l9l\
+rppNQgFe / JMHeYqOZMZO +
+    6kuU0olJanBJ14tPIc7zlMTQ9OfmZ6v07IpyFbsQDtR\
 hpe80DpuvSFPfJ4fh0WrQf6kn3KDVpGDnAqIBDCCAgQwggFtoAMCAQICAQIwDQYJ\
 KoZIhvcNAQELBQAwPzEUMBIGA1UEAwwLdGVzdGNhMi5vcmcxJzAlBgNVBAoMHlBh\
 eW1lbnQgUmVxdWVzdCBJbnRlcm1lZGlhdGUgMjAeFw0xMzAyMjMyMjQyMjlaFw0y\
 MzAyMjEyMjQyMjlaMD8xFDASBgNVBAMMC3Rlc3RjYTMub3JnMScwJQYDVQQKDB5Q\
 YXltZW50IFJlcXVlc3QgSW50ZXJtZWRpYXRlIDMwgZ8wDQYJKoZIhvcNAQEBBQAD\
-gY0AMIGJAoGBANzgVP99Qg98e6NsKEz1v5KqRB7NTBRRsYnBvb/TSWipvMQaCYuE\
-yk1xG57x++QuASKeR3QHRQJOoAhQaj9JLUhSSv9GQ5PrFLLsOFv7L1tpzXHh2dOB\
-IW92X2yFRW2s39q+Q21yvN+N8uoKdqXhzRA+dDoXh3cavaVeHX1G+IrlAgMBAAGj\
-EDAOMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQELBQADgYEASTwg84cX+1UhOG9s\
-ejFV3m34QuI1hPZ+qhqVJlRYUtego8Wng1BburDSwqVAv4ch2wi3c2s4e8J7AXyL\
-tzSbSQG4RN0oZi0mR8EtTTN+Mix/hBIk79dMZg85+I29uFA6Zj2d9oAhQv2qkHhc\
-6tcaheNvkQRlCyH68k3iF1Fqf+4KiAQwggIEMIIBbaADAgECAgECMA0GCSqGSIb3\
+gY0AMIGJAoGBANzgVP99Qg98e6NsKEz1v5KqRB7NTBRRsYnBvb /
+        TSWipvMQaCYuE\
+yk1xG57x++ QuASKeR3QHRQJOoAhQaj9JLUhSSv9GQ5PrFLLsOFv7L1tpzXHh2dOB\
+IW92X2yFRW2s39q +
+    Q21yvN + N8uoKdqXhzRA + dDoXh3cavaVeHX1G + IrlAgMBAAGj\
+EDAOMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQELBQADgYEASTwg84cX +
+    1UhOG9s\
+ejFV3m34QuI1hPZ +
+    qhqVJlRYUtego8Wng1BburDSwqVAv4ch2wi3c2s4e8J7AXyL\
+tzSbSQG4RN0oZi0mR8EtTTN +
+    Mix / hBIk79dMZg85 + I29uFA6Zj2d9oAhQv2qkHhc\
+6tcaheNvkQRlCyH68k3iF1Fqf +
+    4KiAQwggIEMIIBbaADAgECAgECMA0GCSqGSIb3\
 DQEBCwUAMD8xFDASBgNVBAMMC3Rlc3RjYTEub3JnMScwJQYDVQQKDB5QYXltZW50\
 IFJlcXVlc3QgSW50ZXJtZWRpYXRlIDEwHhcNMTMwMjIzMjI0MjI5WhcNMjMwMjIx\
-MjI0MjI5WjA/MRQwEgYDVQQDDAt0ZXN0Y2EyLm9yZzEnMCUGA1UECgweUGF5bWVu\
+MjI0MjI5WjA /
+        MRQwEgYDVQQDDAt0ZXN0Y2EyLm9yZzEnMCUGA1UECgweUGF5bWVu\
 dCBSZXF1ZXN0IEludGVybWVkaWF0ZSAyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCB\
-iQKBgQDaV8zhfyQuSf/f+fauMfgs3g/RnWy9yxxUkvQneQQPH3uZzCyk3A6q72ip\
-TtwNqiibG9455L9A7SaUjGtnpUz0NKT/VWUdqbfCl1PqXjEZbDobbAQ5hxLGOTyL\
-RQhLIcgeq2/BnmeCqHsC4md04nUp+nBo1HwKyygvK+9sMbCp/wIDAQABoxAwDjAM\
-BgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4GBACvYyE+PPmWFkbjyRu9LAt8D\
-crtyYYLRClKSg6tVvutwukLG2l//kDOohYkJtgTqr6LnCIIIwYdXN+4wxugmw4cn\
-PIZmP6kovxjhhVM95okilor1zniTAo3RN7JDIfTGNgxLdGu1btt7DOFL4zTbeSJM\
-b8M1JpPftehH+x/VLyuUCuoDMIIB5jCCAU+gAwIBAgIBBTANBgkqhkiG9w0BAQsF\
+iQKBgQDaV8zhfyQuSf /
+        f +
+    fauMfgs3g / RnWy9yxxUkvQneQQPH3uZzCyk3A6q72ip\
+TtwNqiibG9455L9A7SaUjGtnpUz0NKT /
+        VWUdqbfCl1PqXjEZbDobbAQ5hxLGOTyL\
+RQhLIcgeq2 /
+        BnmeCqHsC4md04nUp +
+    nBo1HwKyygvK + 9sMbCp / wIDAQABoxAwDjAM\
+BgNVHRMEBTADAQH / MA0GCSqGSIb3DQEBCwUAA4GBACvYyE +
+    PPmWFkbjyRu9LAt8D\
+crtyYYLRClKSg6tVvutwukLG2l
+
+        PIZmP6kovxjhhVM95okilor1zniTAo3RN7JDIfTGNgxLdGu1btt7DOFL4zTbeSJM\
+b8M1JpPftehH +
+    x / VLyuUCuoDMIIB5jCCAU +
+    gAwIBAgIBBTANBgkqhkiG9w0BAQsF\
 ADAhMR8wHQYDVQQDExZQYXltZW50UmVxdWVzdCBUZXN0IENBMB4XDTEzMDIyMzIy\
 NDIyOFoXDTIzMDIyMTIyNDIyOFowPzEUMBIGA1UEAwwLdGVzdGNhMS5vcmcxJzAl\
 BgNVBAoMHlBheW1lbnQgUmVxdWVzdCBJbnRlcm1lZGlhdGUgMTCBnzANBgkqhkiG\
-9w0BAQEFAAOBjQAwgYkCgYEAo5Vy9H3nA/OOkF5Ap89yfVNSiTay/LYCaB0eALpc\
-U690U75O9Q3w2M+2AN8wpbbHsJHZMIjEeBRoQfjlYXW1ucQTxWKyT+liu0D25mGX\
-X27CBXBd4iXTxVII/iX+u3lcjORjoHOBy7QgeIDIIS9y0vYu8eArpjh7m4thrVgI\
-RtMCAwEAAaMQMA4wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOBgQB9LKcV\
-JK9sjASNzpQlpUp7nCiw5FSjVY+XMRIKK/kavzlKjZ+InsmmyRVGjDoZi9GrqG9P\
-VHgLBxi2VtVjmokZoNPqao3OfhqORAubC+JR/JLepM7aDaxDdTHVhSUk4lgNAvi2\
-6dGY7nZMsnHlPQ2tPp/HvRRiMq1oDjlylc8VTCI2Eh8IsNsGEhl2qRSVYIoDyPul\
+9w0BAQEFAAOBjQAwgYkCgYEAo5Vy9H3nA /
+        OOkF5Ap89yfVNSiTay / LYCaB0eALpc\
+U690U75O9Q3w2M +
+    2AN8wpbbHsJHZMIjEeBRoQfjlYXW1ucQTxWKyT + liu0D25mGX\
+X27CBXBd4iXTxVII / iX +
+    u3lcjORjoHOBy7QgeIDIIS9y0vYu8eArpjh7m4thrVgI\
+RtMCAwEAAaMQMA4wDAYDVR0TBAUwAwEB /
+        zANBgkqhkiG9w0BAQsFAAOBgQB9LKcV\
+JK9sjASNzpQlpUp7nCiw5FSjVY +
+    XMRIKK / kavzlKjZ + InsmmyRVGjDoZi9GrqG9P\
+VHgLBxi2VtVjmokZoNPqao3OfhqORAubC +
+    JR / JLepM7aDaxDdTHVhSUk4lgNAvi2\
+6dGY7nZMsnHlPQ2tPp /
+        HvRRiMq1oDjlylc8VTCI2Eh8IsNsGEhl2qRSVYIoDyPul\
 6RMbTSzv4tVhVfGZqIisGLLhxYsFKg1Vbml0VGVzdFRocmVlKoABn2HTsUQtMNI4\
 yNvkfkFNka3pRvTUTydJrvyfmEeLzImfM1BWddZjnywku9RToNFZZNgow5QnljmF\
-chhR/aHOuEMTxmc12K4rNlgYtHCsxLP9zd+6u0cva3TucZ6EzS8PKEib/+r12/52\
-664NuWA9WtsK7QCFrK2K95PnVCRmWl0=\
-";
+chhR / aHOuEMTxmc12K4rNlgYtHCsxLP9zd +
+    6u0cva3TucZ6EzS8PKEib / +r12 / 52\
+664NuWA9WtsK7QCFrK2K95PnVCRmWl0 = ";
 
-//
-// Long certificate chain, with an expired certificate in the middle
-//
-const char* paymentrequest4_cert1_BASE64 =
-"\
+    const char *paymentrequest4_cert1_BASE64 =
+        "\
 Egt4NTA5K3NoYTI1NhqeJAr/AzCCAfswggFkoAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwPzEUMBIGA1UEAwwLdGVzdGNhOC5vcmcxJzAlBgNVBAoMHlBheW1lbnQgUmVx\
 dWVzdCBJbnRlcm1lZGlhdGUgODAeFw0xMzAyMjMyMjQyMzFaFw0yMzAyMjEyMjQy\
@@ -297,30 +308,40 @@ CSqGSIb3DQEBAQUAA4GNADCBiQKBgQDaV8zhfyQuSf/f+fauMfgs3g/RnWy9yxxU\
 kvQneQQPH3uZzCyk3A6q72ipTtwNqiibG9455L9A7SaUjGtnpUz0NKT/VWUdqbfC\
 l1PqXjEZbDobbAQ5hxLGOTyLRQhLIcgeq2/BnmeCqHsC4md04nUp+nBo1HwKyygv\
 K+9sMbCp/wIDAQABoxAwDjAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4GB\
-ACvYyE+PPmWFkbjyRu9LAt8DcrtyYYLRClKSg6tVvutwukLG2l//kDOohYkJtgTq\
-r6LnCIIIwYdXN+4wxugmw4cnPIZmP6kovxjhhVM95okilor1zniTAo3RN7JDIfTG\
-NgxLdGu1btt7DOFL4zTbeSJMb8M1JpPftehH+x/VLyuUCuoDMIIB5jCCAU+gAwIB\
+ACvYyE+PPmWFkbjyRu9LAt8DcrtyYYLRClKSg6tVvutwukLG2l
+
+            r6LnCIIIwYdXN +
+            4wxugmw4cnPIZmP6kovxjhhVM95okilor1zniTAo3RN7JDIfTG\
+NgxLdGu1btt7DOFL4zTbeSJMb8M1JpPftehH +
+            x / VLyuUCuoDMIIB5jCCAU +
+            gAwIB\
 AgIBBTANBgkqhkiG9w0BAQsFADAhMR8wHQYDVQQDExZQYXltZW50UmVxdWVzdCBU\
 ZXN0IENBMB4XDTEzMDIyMzIyNDIyOFoXDTIzMDIyMTIyNDIyOFowPzEUMBIGA1UE\
 AwwLdGVzdGNhMS5vcmcxJzAlBgNVBAoMHlBheW1lbnQgUmVxdWVzdCBJbnRlcm1l\
-ZGlhdGUgMTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAo5Vy9H3nA/OOkF5A\
-p89yfVNSiTay/LYCaB0eALpcU690U75O9Q3w2M+2AN8wpbbHsJHZMIjEeBRoQfjl\
-YXW1ucQTxWKyT+liu0D25mGXX27CBXBd4iXTxVII/iX+u3lcjORjoHOBy7QgeIDI\
-IS9y0vYu8eArpjh7m4thrVgIRtMCAwEAAaMQMA4wDAYDVR0TBAUwAwEB/zANBgkq\
-hkiG9w0BAQsFAAOBgQB9LKcVJK9sjASNzpQlpUp7nCiw5FSjVY+XMRIKK/kavzlK\
-jZ+InsmmyRVGjDoZi9GrqG9PVHgLBxi2VtVjmokZoNPqao3OfhqORAubC+JR/JLe\
-pM7aDaxDdTHVhSUk4lgNAvi26dGY7nZMsnHlPQ2tPp/HvRRiMq1oDjlylc8VTCI1\
+ZGlhdGUgMTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAo5Vy9H3nA /
+                OOkF5A\
+p89yfVNSiTay / LYCaB0eALpcU690U75O9Q3w2M +
+            2AN8wpbbHsJHZMIjEeBRoQfjl\
+YXW1ucQTxWKyT +
+            liu0D25mGXX27CBXBd4iXTxVII / iX +
+            u3lcjORjoHOBy7QgeIDI\
+IS9y0vYu8eArpjh7m4thrVgIRtMCAwEAAaMQMA4wDAYDVR0TBAUwAwEB /
+                zANBgkq\
+hkiG9w0BAQsFAAOBgQB9LKcVJK9sjASNzpQlpUp7nCiw5FSjVY +
+            XMRIKK / kavzlK\
+jZ +
+            InsmmyRVGjDoZi9GrqG9PVHgLBxi2VtVjmokZoNPqao3OfhqORAubC + JR / JLe\
+pM7aDaxDdTHVhSUk4lgNAvi26dGY7nZMsnHlPQ2tPp / HvRRiMq1oDjlylc8VTCI1\
 Eh8IsNsGEhl2qRSVYIoDyPul6RMbTSzv4tVhVfGZqIisGLLhxYsFKgxVbml0VGVz\
-dEZvdXIqgAEBE1PP93Tkpif35F+dYmXn9kLA/1djcPjCs2o2rwRMM4Uk356O5dgu\
-HXQjsfdR58qZQS9CS5DAtRUf0R8+43/wijO/hb49VNaNXmY+/cPHMkahP2aV3tZi\
-FAyZblLik9A7ZvF+UsjeFQiHB5wzWQvbqk5wQ4yabHIXoYv/E0q+eQ==\
-";
+dEZvdXIqgAEBE1PP93Tkpif35F +
+            dYmXn9kLA / 1djcPjCs2o2rwRMM4Uk356O5dgu\
+HXQjsfdR58qZQS9CS5DAtRUf0R8 +
+            43 / wijO / hb49VNaNXmY + / cPHMkahP2aV3tZi\
+FAyZblLik9A7ZvF +
+            UsjeFQiHB5wzWQvbqk5wQ4yabHIXoYv / E0q + eQ ==
+        ";
 
-//
-// Validly signed, but by a CA not in our root CA list
-//
-const char* paymentrequest5_cert1_BASE64 =
-"\
+        const char *paymentrequest5_cert1_BASE64 = "\
 Egt4NTA5K3NoYTI1NhrxAwruAzCCAeowggFToAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAxMWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xMzA0MTkx\
 NzIwMDZaFw0yMzA0MTcxNzIwMDZaMEMxGTAXBgNVBAMMEHRlc3RtZXJjaGFudC5v\
@@ -338,11 +359,7 @@ ssymvca1S/1KeM3n8Ydi2fi1JUzAAr59xPvNJRUeqCLP9upHn5z7br3P12Oz9A20\
 XYh860/Q4wvc7lfiTe+dXBzPKAKhMy91yETY\
 ";
 
-//
-// Contains a testnet paytoaddress, so payment request network doesn't match client network
-//
-const char* paymentrequest1_cert2_BASE64 =
-"\
+const char *paymentrequest1_cert2_BASE64 = "\
 Egt4NTA5K3NoYTI1NhrQBArNBDCCAkkwggExoAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAwwWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xNTAxMTEx\
 ODIxMDhaFw0yNTAxMDgxODIxMDhaMCExHzAdBgNVBAMMFlBheW1lbnRSZXF1ZXN0\
@@ -362,11 +379,7 @@ ew+A05xfZztrAt16XKEY7qKJ/eY2nLd0fVAIu/nIt+7/VYVXT83zLrWc150aRS7W\
 AdJbL3JOJLs6Eyp5zrPbfI8faRttFAdONKDrJgIpuW1E3g==\
 ";
 
-//
-// Expired payment request (expires is set to 1 = 1970-01-01 00:00:01)
-//
-const char* paymentrequest2_cert2_BASE64 =
-"\
+const char *paymentrequest2_cert2_BASE64 = "\
 Egt4NTA5K3NoYTI1NhrQBArNBDCCAkkwggExoAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAwwWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xNTAxMTEx\
 ODIxMDhaFw0yNTAxMDgxODIxMDhaMCExHzAdBgNVBAMMFlBheW1lbnRSZXF1ZXN0\
@@ -386,11 +399,8 @@ sZdzbTl95ENR7/Y7VJupW9kDWobCK7zUUhLAzUlwmLlcx6itHw8LTUF5HK+AwsZm\
 Zs85lISGvOS0NZW/ENa6l+oQRnL87oqVZr/EDGiuqjz6T0ThQi0l\
 ";
 
-//
-// Unexpired payment request (expires is set to 0x7FFFFFFFFFFFFFFF = max. int64_t)
-//
-const char* paymentrequest3_cert2_BASE64 =
-"\
+const char *paymentrequest3_cert2_BASE64 =
+    "\
 Egt4NTA5K3NoYTI1NhrQBArNBDCCAkkwggExoAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAwwWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xNTAxMTEx\
 ODIxMDhaFw0yNTAxMDgxODIxMDhaMCExHzAdBgNVBAMMFlBheW1lbnRSZXF1ZXN0\
@@ -404,17 +414,15 @@ KoZIhvcNAQELBQADggEBABUJpl3QCqsoDSxAsQdV6zKT4VGV76AzoGj7etQsQY+r\
 tIgDGRQQ4AyoHTcfVd2hEGeUv7k14mOxFsAp6851yosHq9Q2kwmdH+rHEJbjof87\
 yyKLagc4owyXBZYkQmkeHWCNqnuRmO5vUsfVb0UUrkD64o7Th/NjwooA7SCiUXl6\
 dfygT1b7ggpx7GC+sP2DsIM47IAZ55drjqX5u2f+Ba0iSgoEdGVzdBIgCICt4gQS\
-GXapFASsapRTBKxoykO9YhoackY1CqLyiKwYyNfZpQUg//////////9/KhBUZXN0\
-aW5nIHRlc3RuZXQhKoABNwi8WnMW4aMvbmvorTiiWJLFhofLFnsoWCJnj3rWLnLh\
-n3w6q/fZ26p50ERL/noxdTUfeFsKnlECkUu/fOcOrqyYDiwvxI0SZ034DleVyFU1\
-Z3T+X0zcL8oe7bX01Yf+s2V+5JXQXarKnKBrZCGgv2ARjFNSZe7E7vGg5K4Q6Q8=\
-";
+GXapFASsapRTBKxoykO9YhoackY1CqLyiKwYyNfZpQUg
 
-//
-// Unexpired payment request (expires is set to 0x8000000000000000 > max. int64_t, allowed uint64)
-//
-const char* paymentrequest4_cert2_BASE64 =
-"\
+        aW5nIHRlc3RuZXQhKoABNwi8WnMW4aMvbmvorTiiWJLFhofLFnsoWCJnj3rWLnLh\
+n3w6q / fZ26p50ERL /
+        noxdTUfeFsKnlECkUu / fOcOrqyYDiwvxI0SZ034DleVyFU1\
+Z3T +
+    X0zcL8oe7bX01Yf + s2V + 5JXQXarKnKBrZCGgv2ARjFNSZe7E7vGg5K4Q6Q8 = ";
+
+    const char *paymentrequest4_cert2_BASE64 = "\
 Egt4NTA5K3NoYTI1NhrQBArNBDCCAkkwggExoAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAwwWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xNTAxMTEx\
 ODIxMDhaFw0yNTAxMDgxODIxMDhaMCExHzAdBgNVBAMMFlBheW1lbnRSZXF1ZXN0\
@@ -434,11 +442,7 @@ HSLaRgHfUDeEPr4hydy4dtfu59KNwe2xsHOHu/SpO4L8SrA4Dm9A7SlNBVWdcLbw\
 d2hj739GDLz0b5KuJ2SG6VknMRQM976w/m2qlq0ccVGaaZ2zMIGfpzL3p6adwx/5\
 ";
 
-//
-// Payment request with amount overflow (amount is set to 84000001 LCC)
-//
-const char* paymentrequest5_cert2_BASE64 =
-"\
+const char *paymentrequest5_cert2_BASE64 = "\
 Egt4NTA5K3NoYTI1NhryBArvBDCCAmswggFToAMCAQICAQEwDQYJKoZIhvcNAQEL\
 BQAwITEfMB0GA1UEAwwWUGF5bWVudFJlcXVlc3QgVGVzdCBDQTAeFw0xNjExMTYw\
 MDU1NTFaFw0yNjExMTQwMDU1NTFaMEMxGTAXBgNVBAMMEHRlc3RtZXJjaGFudC5v\

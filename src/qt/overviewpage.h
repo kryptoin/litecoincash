@@ -17,60 +17,65 @@ class PlatformStyle;
 class WalletModel;
 
 namespace Ui {
-    class OverviewPage;
+class OverviewPage;
 }
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
 QT_END_NAMESPACE
 
-/** Overview ("home") page widget */
-class OverviewPage : public QWidget
-{
-    Q_OBJECT
+class OverviewPage : public QWidget {
+  Q_OBJECT
 
 public:
-    explicit OverviewPage(const PlatformStyle *platformStyle, QWidget *parent = 0);
-    ~OverviewPage();
+  explicit OverviewPage(const PlatformStyle *platformStyle,
+                        QWidget *parent = 0);
+  ~OverviewPage();
 
-    void setClientModel(ClientModel *clientModel);
-    void setWalletModel(WalletModel *walletModel);
-    void showOutOfSyncWarning(bool fShow);
+  void setClientModel(ClientModel *clientModel);
+  void setWalletModel(WalletModel *walletModel);
+  void showOutOfSyncWarning(bool fShow);
 
 public Q_SLOTS:
-    void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
-                    const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
-    void setEncryptionStatus(int status);       // LitecoinCash: Rialto
+  void setBalance(const CAmount &balance, const CAmount &unconfirmedBalance,
+                  const CAmount &immatureBalance,
+                  const CAmount &watchOnlyBalance,
+                  const CAmount &watchUnconfBalance,
+                  const CAmount &watchImmatureBalance);
+  void setEncryptionStatus(int status);
 
 Q_SIGNALS:
-    void transactionClicked(const QModelIndex &index);
-    void beeButtonClicked();                    // LitecoinCash: Hive
-    void outOfSyncWarningClicked();
+  void transactionClicked(const QModelIndex &index);
+  void beeButtonClicked();
+
+  void outOfSyncWarningClicked();
 
 private:
-    Ui::OverviewPage *ui;
-    ClientModel *clientModel;
-    WalletModel *walletModel;
-    CAmount currentBalance;
-    CAmount currentUnconfirmedBalance;
-    CAmount currentImmatureBalance;
-    CAmount currentWatchOnlyBalance;
-    CAmount currentWatchUnconfBalance;
-    CAmount currentWatchImmatureBalance;
-    CAmount cost, rewardsPaid, profit;          // LitecoinCash: Hive
+  Ui::OverviewPage *ui;
+  ClientModel *clientModel;
+  WalletModel *walletModel;
+  CAmount currentBalance;
+  CAmount currentUnconfirmedBalance;
+  CAmount currentImmatureBalance;
+  CAmount currentWatchOnlyBalance;
+  CAmount currentWatchUnconfBalance;
+  CAmount currentWatchImmatureBalance;
+  CAmount cost, rewardsPaid, profit;
 
-    TxViewDelegate *txdelegate;
-    std::unique_ptr<TransactionFilterProxy> filter;
+  TxViewDelegate *txdelegate;
+  std::unique_ptr<TransactionFilterProxy> filter;
 
 private Q_SLOTS:
-    void updateDisplayUnit();
-    void handleTransactionClicked(const QModelIndex &index);
-    void updateAlerts(const QString &warnings);
-    void updateWatchOnlyLabels(bool showWatchOnly);
-    void handleOutOfSyncWarningClicks();
-    void on_beeButton_clicked();                // LitecoinCash: Hive: Bee button handler
-    void updateHiveSummary();                   // LitecoinCash: Hive: Update hive summary
-    void on_unlockWalletButton_clicked();       // LitecoinCash: Rialto: Unlock wallet button handler
+  void updateDisplayUnit();
+  void handleTransactionClicked(const QModelIndex &index);
+  void updateAlerts(const QString &warnings);
+  void updateWatchOnlyLabels(bool showWatchOnly);
+  void handleOutOfSyncWarningClicks();
+  void on_beeButton_clicked();
+
+  void updateHiveSummary();
+
+  void on_unlockWalletButton_clicked();
 };
 
-#endif // BITCOIN_QT_OVERVIEWPAGE_H
+#endif

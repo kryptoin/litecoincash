@@ -10,26 +10,21 @@
 #include <QObject>
 #include <QTest>
 
-class PaymentServerTests : public QObject
-{
-    Q_OBJECT
+class PaymentServerTests : public QObject {
+  Q_OBJECT
 
 private Q_SLOTS:
-    void paymentServerTests();
+  void paymentServerTests();
 };
 
-// Dummy class to receive paymentserver signals.
-// If SendCoinsRecipient was a proper QObject, then
-// we could use QSignalSpy... but it's not.
-class RecipientCatcher : public QObject
-{
-    Q_OBJECT
+class RecipientCatcher : public QObject {
+  Q_OBJECT
 
 public Q_SLOTS:
-    void getRecipient(const SendCoinsRecipient& r);
+  void getRecipient(const SendCoinsRecipient &r);
 
 public:
-    SendCoinsRecipient recipient;
+  SendCoinsRecipient recipient;
 };
 
-#endif // BITCOIN_QT_TEST_PAYMENTSERVERTESTS_H
+#endif

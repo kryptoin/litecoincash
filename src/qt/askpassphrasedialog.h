@@ -10,46 +10,48 @@
 class WalletModel;
 
 namespace Ui {
-    class AskPassphraseDialog;
+class AskPassphraseDialog;
 }
 
-/** Multifunctional dialog to ask for passphrases. Used for encryption, unlocking, and changing the passphrase.
- */
-class AskPassphraseDialog : public QDialog
-{
-    Q_OBJECT
+class AskPassphraseDialog : public QDialog {
+  Q_OBJECT
 
 public:
-    enum Mode {
-        Encrypt,            /**< Ask passphrase twice and encrypt */
-        UnlockHiveMining,   /** <Ask passphrase and unlock */     // LitecoinCash: Hive: Support locked wallets
-        Unlock,             /**< Ask passphrase and unlock */
-        ChangePass,         /**< Ask old passphrase + new passphrase twice */
-        Decrypt             /**< Ask passphrase and decrypt wallet */
-    };
+  enum Mode {
+    Encrypt,
 
-    explicit AskPassphraseDialog(Mode mode, QWidget *parent);
-    ~AskPassphraseDialog();
+    UnlockHiveMining,
 
-    void accept();
+    Unlock,
 
-    void setModel(WalletModel *model);
+    ChangePass,
+
+    Decrypt
+
+  };
+
+  explicit AskPassphraseDialog(Mode mode, QWidget *parent);
+  ~AskPassphraseDialog();
+
+  void accept();
+
+  void setModel(WalletModel *model);
 
 private:
-    Ui::AskPassphraseDialog *ui;
-    Mode mode;
-    WalletModel *model;
-    bool fCapsLock;
-	bool fHiveOnly;     // LitecoinCash: Hive: Locked wallet support
+  Ui::AskPassphraseDialog *ui;
+  Mode mode;
+  WalletModel *model;
+  bool fCapsLock;
+  bool fHiveOnly;
 
 private Q_SLOTS:
-    void textChanged();
-    void secureClearPassFields();
-    void toggleShowPassword(bool);
+  void textChanged();
+  void secureClearPassFields();
+  void toggleShowPassword(bool);
 
 protected:
-    bool event(QEvent *event);
-    bool eventFilter(QObject *object, QEvent *event);
+  bool event(QEvent *event);
+  bool eventFilter(QObject *object, QEvent *event);
 };
 
-#endif // BITCOIN_QT_ASKPASSPHRASEDIALOG_H
+#endif

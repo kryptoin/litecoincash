@@ -7,7 +7,7 @@
 #define BITCOIN_POW_H
 
 #include <consensus/params.h>
-#include <primitives/block.h>   // LitecoinCash: MinotaurX+Hive1.2: For POW_TYPE
+#include <primitives/block.h>
 
 #include <stdint.h>
 
@@ -16,24 +16,40 @@ class CBlockIndex;
 class uint256;
 class CBlock;
 
-// LitecoinCash: Hive
 struct BeePopGraphPoint {
-    int immaturePop;
-    int maturePop;
+  int immaturePop;
+  int maturePop;
 };
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&);
-unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params&);
-unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params);                               // LitecoinCash: LCC (DGW) diff adjust implementation
-unsigned int GetNextWorkRequiredLTC(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&);   // LitecoinCash: LTC diff adjust implementation
-unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params);                       // LitecoinCash: Hive: Get the current Bee Hash Target
-unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params, const POW_TYPE powType); // LitecoinCash: MinotaurX+Hive1.2: LWMA difficulty adjustment for all pow types
-bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& params);                                                 // LitecoinCash: Hive: Check the hive proof for given block
-bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, int& matureBCTs, CAmount& potentialLifespanRewards, const Consensus::Params& consensusParams, bool recalcGraph = false); // LitecoinCash: Hive: Get count of all live and gestating BCTs on the network
+unsigned int GetNextWorkRequired(const CBlockIndex *pindexLast,
+                                 const CBlockHeader *pblock,
+                                 const Consensus::Params &);
+unsigned int CalculateNextWorkRequired(const CBlockIndex *pindexLast,
+                                       int64_t nFirstBlockTime,
+                                       const Consensus::Params &);
+unsigned int DarkGravityWave(const CBlockIndex *pindexLast,
+                             const Consensus::Params &params);
 
-/** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&);
+unsigned int GetNextWorkRequiredLTC(const CBlockIndex *pindexLast,
+                                    const CBlockHeader *pblock,
+                                    const Consensus::Params &);
 
+unsigned int GetNextHiveWorkRequired(const CBlockIndex *pindexLast,
+                                     const Consensus::Params &params);
 
+unsigned int GetNextWorkRequiredLWMA(const CBlockIndex *pindexLast,
+                                     const CBlockHeader *pblock,
+                                     const Consensus::Params &params,
+                                     const POW_TYPE powType);
 
-#endif // BITCOIN_POW_H
+bool CheckHiveProof(const CBlock *pblock, const Consensus::Params &params);
+
+bool GetNetworkHiveInfo(int &immatureBees, int &immatureBCTs, int &matureBees,
+                        int &matureBCTs, CAmount &potentialLifespanRewards,
+                        const Consensus::Params &consensusParams,
+                        bool recalcGraph = false);
+
+bool CheckProofOfWork(uint256 hash, unsigned int nBits,
+                      const Consensus::Params &);
+
+#endif

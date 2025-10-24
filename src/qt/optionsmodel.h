@@ -16,93 +16,107 @@ QT_END_NAMESPACE
 extern const char *DEFAULT_GUI_PROXY_HOST;
 static constexpr unsigned short DEFAULT_GUI_PROXY_PORT = 9050;
 
-/** Interface from Qt to configuration data structure for Bitcoin client.
-   To Qt, the options are presented as a list with the different options
-   laid out vertically.
-   This can be changed to a tree once the settings become sufficiently
-   complex.
- */
-class OptionsModel : public QAbstractListModel
-{
-    Q_OBJECT
+class OptionsModel : public QAbstractListModel {
+  Q_OBJECT
 
 public:
-    explicit OptionsModel(QObject *parent = 0, bool resetSettings = false);
+  explicit OptionsModel(QObject *parent = 0, bool resetSettings = false);
 
-    enum OptionID {
-        StartAtStartup,         // bool
-        HideTrayIcon,           // bool
-        MinimizeToTray,         // bool
-        MapPortUPnP,            // bool
-        MinimizeOnClose,        // bool
-        ProxyUse,               // bool
-        ProxyIP,                // QString
-        ProxyPort,              // int
-        ProxyUseTor,            // bool
-        ProxyIPTor,             // QString
-        ProxyPortTor,           // int
-        DisplayUnit,            // BitcoinUnits::Unit
-        ThirdPartyTxUrls,       // QString
-        Language,               // QString
-        CoinControlFeatures,    // bool
-        ThreadsScriptVerif,     // int
-        DatabaseCache,          // int
-        SpendZeroConfChange,    // bool
-        Listen,                 // bool
-        HiveCheckDelay,         // LitecoinCash: Hive: Mining optimisations (int)
-        HiveCheckThreads,       // LitecoinCash: Hive: Mining optimisations (int)
-        HiveCheckEarlyOut,      // LitecoinCash: Hive: Mining optimisations (bool)
-        HiveContribCF,          // LitecoinCash: MinotaurX+Hive1.2
-        OptionIDRowCount,
-    };
+  enum OptionID {
+    StartAtStartup,
 
-    void Init(bool resetSettings = false);
-    void Reset();
+    HideTrayIcon,
 
-    int rowCount(const QModelIndex & parent = QModelIndex()) const;
-    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
-    bool setData(const QModelIndex & index, const QVariant & value, int role = Qt::EditRole);
-    /** Updates current unit in memory, settings and emits displayUnitChanged(newUnit) signal */
-    void setDisplayUnit(const QVariant &value);
+    MinimizeToTray,
 
-    /* Explicit getters */
-    bool getHideTrayIcon() const { return fHideTrayIcon; }
-    bool getMinimizeToTray() const { return fMinimizeToTray; }
-    bool getMinimizeOnClose() const { return fMinimizeOnClose; }
-    int getDisplayUnit() const { return nDisplayUnit; }
-    QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
-    bool getProxySettings(QNetworkProxy& proxy) const;
-    bool getCoinControlFeatures() const { return fCoinControlFeatures; }
-    const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
-    bool getHiveContribCF() const { return fHiveContribCF; }    // LitecoinCash: MinotaurX+Hive1.2
+    MapPortUPnP,
 
-    /* Restart flag helper */
-    void setRestartRequired(bool fRequired);
-    bool isRestartRequired() const;
+    MinimizeOnClose,
+
+    ProxyUse,
+
+    ProxyIP,
+
+    ProxyPort,
+
+    ProxyUseTor,
+
+    ProxyIPTor,
+
+    ProxyPortTor,
+
+    DisplayUnit,
+
+    ThirdPartyTxUrls,
+
+    Language,
+
+    CoinControlFeatures,
+
+    ThreadsScriptVerif,
+
+    DatabaseCache,
+
+    SpendZeroConfChange,
+
+    Listen,
+
+    HiveCheckDelay,
+
+    HiveCheckThreads,
+
+    HiveCheckEarlyOut,
+
+    HiveContribCF,
+
+    OptionIDRowCount,
+  };
+
+  void Init(bool resetSettings = false);
+  void Reset();
+
+  int rowCount(const QModelIndex &parent = QModelIndex()) const;
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+  bool setData(const QModelIndex &index, const QVariant &value,
+               int role = Qt::EditRole);
+
+  void setDisplayUnit(const QVariant &value);
+
+  bool getHideTrayIcon() const { return fHideTrayIcon; }
+  bool getMinimizeToTray() const { return fMinimizeToTray; }
+  bool getMinimizeOnClose() const { return fMinimizeOnClose; }
+  int getDisplayUnit() const { return nDisplayUnit; }
+  QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
+  bool getProxySettings(QNetworkProxy &proxy) const;
+  bool getCoinControlFeatures() const { return fCoinControlFeatures; }
+  const QString &getOverriddenByCommandLine() {
+    return strOverriddenByCommandLine;
+  }
+  bool getHiveContribCF() const { return fHiveContribCF; }
+
+  void setRestartRequired(bool fRequired);
+  bool isRestartRequired() const;
 
 private:
-    /* Qt-only settings */
-    bool fHideTrayIcon;
-    bool fMinimizeToTray;
-    bool fMinimizeOnClose;
-    bool fHiveContribCF;    // LitecoinCash: MinotaurX+Hive1.2
+  bool fHideTrayIcon;
+  bool fMinimizeToTray;
+  bool fMinimizeOnClose;
+  bool fHiveContribCF;
 
-    QString language;
-    int nDisplayUnit;
-    QString strThirdPartyTxUrls;
-    bool fCoinControlFeatures;
-    /* settings that were overridden by command-line */
-    QString strOverriddenByCommandLine;
+  QString language;
+  int nDisplayUnit;
+  QString strThirdPartyTxUrls;
+  bool fCoinControlFeatures;
 
-    // Add option to list of GUI options overridden through command line/config file
-    void addOverriddenOption(const std::string &option);
+  QString strOverriddenByCommandLine;
 
-    // Check settings version and upgrade default values if required
-    void checkAndMigrate();
+  void addOverriddenOption(const std::string &option);
+
+  void checkAndMigrate();
 Q_SIGNALS:
-    void displayUnitChanged(int unit);
-    void coinControlFeaturesChanged(bool);
-    void hideTrayIconChanged(bool);
+  void displayUnitChanged(int unit);
+  void coinControlFeaturesChanged(bool);
+  void hideTrayIconChanged(bool);
 };
 
-#endif // BITCOIN_QT_OPTIONSMODEL_H
+#endif

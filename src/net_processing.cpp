@@ -69,36 +69,7 @@ static const int HISTORICAL_BLOCK_AGE = 7 * 24 * 60 * 60;
 namespace {
 int nSyncStarted = 0;
 
-/**
- * Sources of received blocks, saved to be able to send them reject
- * messages or ban them when processing happens afterwards. Protected by
- * cs_main.
- * Set mapBlockSource[hash].second to false if the node should not be
- * punished if the block is invalid.
- */
-
 std::map<uint256, std::pair<NodeId, bool>> mapBlockSource;
-
-/**
- * Filter for transactions that were recently rejected by
- * AcceptToMemoryPool. These are not rerequested until the chain tip
- * changes, at which point the entire filter is reset. Protected by
- * cs_main.
- *
- * Without this filter we'd be re-requesting txs from each of our peers,
- * increasing bandwidth consumption considerably. For instance, with 100
- * peers, half of which relay a tx we don't accept, that might be a 50x
- * bandwidth increase. A flooding attacker attempting to roll-over the
- * filter using minimum-sized, 60byte, transactions might manage to send
- * 1000/sec if we have fast peers, so we pick 120,000 to give our peers a
- * two minute window to send invs to us.
- *
- * Decreasing the false positive rate is fairly cheap, so we pick one in a
- * million to make it highly unlikely for users to have issues with this
- * filter.
- *
- * Memory used: 1.3 MB
- */
 
 std::unique_ptr<CRollingBloomFilter> recentRejects;
 uint256 hashRecentRejectsChainTip;
@@ -143,13 +114,6 @@ struct CBlockReject {
   uint256 hashBlock;
 };
 
-/**
- * Maintain validation-specific state about nodes, protected by cs_main, instead
- * by CNode's own locks. This simplifies asynchronous operation, where
- * processing of incoming data is done after the ProcessMessage call returns,
- * and we're no longer holding the node's locks.
- */
-
 struct CNodeState {
   const CService address;
 
@@ -190,41 +154,13 @@ struct CNodeState {
 
   bool fPreferHeaderAndIDs;
 
-  /**
-   * Whether this peer will send us cmpctblocks if we request them.
-   * This is not used to gate request logic, as we really only care about
-   * fSupportsDesiredCmpctVersion, but is used as a flag to "lock in" the
-   * version of compact blocks (fWantsCmpctWitness) we send.
-   */
-
   bool fProvidesHeaderAndIDs;
 
   bool fHaveWitness;
 
   bool fWantsCmpctWitness;
 
-  /**
-   * If we've announced NODE_WITNESS to this peer: whether the peer sends
-   * witnesses in cmpctblocks/blocktxns, otherwise: whether this peer sends
-   * non-witnesses in cmpctblocks/blocktxns.
-   */
-
   bool fSupportsDesiredCmpctVersion;
-
-  /** State used to enforce CHAIN_SYNC_TIMEOUT
-   * Only in effect for outbound, non-manual connections, with
-   * m_protect == false
-   * Algorithm: if a peer's best known block has less work than our tip,
-   * set a timeout CHAIN_SYNC_TIMEOUT seconds in the future:
-   *   - If at timeout their best known block now has more work than our tip
-   *     when the timeout was set, then either reset the timeout or clear it
-   *     (after comparing against our current tip's work)
-   *   - If at timeout their best known block still has less work than our
-   *     tip did when the timeout was set, then send a getheaders message,
-   *     and set a shorter timeout, HEADERS_RESPONSE_TIME seconds in future.
-   *     If their best known block is still behind when that new timeout is
-   *     reached, disconnect.
-   */
 
   struct ChainSyncTimeoutState {
     int64_t m_timeout;
@@ -439,16 +375,16 @@ void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman *connman) {
                                pnodeStop,
                                CNetMsgMaker(pnodeStop->GetSendVersion())
                                    .Make(NetMsgType::SENDCMPCT,
-                                         /*fAnnounceUsingCMPCTBLOCK=*/false,
-                                         nCMPCTBLOCKVersion));
+
+                                         false, nCMPCTBLOCKVersion));
                            return true;
                          });
         lNodesAnnouncingHeaderAndIDs.pop_front();
       }
       connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion())
                                       .Make(NetMsgType::SENDCMPCT,
-                                            /*fAnnounceUsingCMPCTBLOCK=*/true,
-                                            nCMPCTBLOCKVersion));
+
+                                            true, nCMPCTBLOCKVersion));
       lNodesAnnouncingHeaderAndIDs.push_back(pfrom->GetId());
       return true;
     });
@@ -479,9 +415,6 @@ bool PeerHasHeader(CNodeState *state, const CBlockIndex *pindex) {
     return true;
   return false;
 }
-
-/** Update pindexLastCommonBlock and add not-in-flight missing successors to
- * vBlocks, until it has at most count entries. */
 
 void FindNextBlocksToDownload(NodeId nodeid, unsigned int count,
                               std::vector<const CBlockIndex *> &vBlocks,
@@ -1120,8 +1053,7 @@ void static ProcessGetBlockData(CNode *pfrom,
          NODE_NETWORK_LIMITED) &&
         ((pfrom->GetLocalServices() & NODE_NETWORK) != NODE_NETWORK) &&
         (chainActive.Tip()->nHeight - mi->second->nHeight >
-         (int)NODE_NETWORK_LIMITED_MIN_BLOCKS +
-             2 /* add two blocks buffer extension for possible races */)))) {
+         (int)NODE_NETWORK_LIMITED_MIN_BLOCKS + 2)))) {
     LogPrint(BCLog::NET,
              "Ignore block request below NODE_NETWORK_LIMITED threshold from "
              "peer=%d\n",
@@ -2119,7 +2051,7 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
 
     if (!AlreadyHave(inv) &&
         AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn,
-                           false /* bypass_limits */, 0 /* nAbsurdFee */)) {
+                           false, 0)) {
       mempool.check(pcoinsTip.get());
       RelayTransaction(tx, connman);
       for (unsigned int i = 0; i < tx.vout.size(); i++) {
@@ -2153,9 +2085,7 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
           if (setMisbehaving.count(fromPeer))
             continue;
           if (AcceptToMemoryPool(mempool, stateDummy, porphanTx,
-                                 &fMissingInputs2, &lRemovedTxn,
-                                 false /* bypass_limits */,
-                                 0 /* nAbsurdFee */)) {
+                                 &fMissingInputs2, &lRemovedTxn, false, 0)) {
             LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n",
                      orphanHash.ToString());
             RelayTransaction(orphanTx, connman);
@@ -2454,7 +2384,8 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     if (fRevertToHeaderProcessing) {
       return ProcessHeadersMessage(pfrom, connman, {cmpctblock.header},
                                    chainparams,
-                                   /*punish_duplicate_invalid=*/false);
+
+                                   false);
     }
 
     if (fBlockReconstructed) {
@@ -2465,8 +2396,7 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
       }
       bool fNewBlock = false;
 
-      ProcessNewBlock(chainparams, pblock, /*fForceProcessing=*/true,
-                      &fNewBlock);
+      ProcessNewBlock(chainparams, pblock, true, &fNewBlock);
       if (fNewBlock) {
         pfrom->nLastBlockTime = GetTime();
       } else {
@@ -2532,8 +2462,7 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     if (fBlockRead) {
       bool fNewBlock = false;
 
-      ProcessNewBlock(chainparams, pblock, /*fForceProcessing=*/true,
-                      &fNewBlock);
+      ProcessNewBlock(chainparams, pblock, true, &fNewBlock);
       if (fNewBlock) {
         pfrom->nLastBlockTime = GetTime();
       } else {
@@ -3079,8 +3008,6 @@ public:
 
   bool operator()(std::set<uint256>::iterator a,
                   std::set<uint256>::iterator b) {
-    /* As std::make_heap produces a max-heap, we want the entries with the
-     * fewest ancestors/highest fee to sort later. */
     return mp->CompareDepthAndScore(*b, *a);
   }
 };
@@ -3174,13 +3101,7 @@ bool PeerLogicValidation::SendMessages(CNode *pto,
                 (consensusParams.nPowTargetSpacing);
         nSyncStarted++;
         const CBlockIndex *pindexStart = pindexBestHeader;
-        /* If possible, start at the block preceding the currently
-           best known header.  This ensures that we always get a
-           non-empty list of headers back as long as the peer
-           is up-to-date.  With a non-empty response, we can initialise
-           the peer's known best block.  This wouldn't be possible
-           if we requested starting at pindexBestHeader and
-           got back an empty response.  */
+
         if (pindexStart->pprev)
           pindexStart = pindexStart->pprev;
         LogPrint(BCLog::NET,
