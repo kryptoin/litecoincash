@@ -1,6 +1,5 @@
 *.tar.gz
 
-*.exe
 src/litecoincash
 src/litecoincashd
 src/litecoincash-cli
@@ -139,6 +138,3 @@ just*.sh
 
 build-m1.sh
 scripts/
-src/.clang-format
-src/txmempool.0.save
-src/txmempool.1.good.save

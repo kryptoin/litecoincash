@@ -129,76 +129,6 @@ void CTxMemPool::UpdateTransactionsFromBlock(
   }
 }
 
-// bool CTxMemPool::CalculateMemPoolAncestors(
-//     const CTxMemPoolEntry &entry, setEntries &setAncestors,
-//     uint64_t limitAncestorCount, uint64_t limitAncestorSize,
-//     uint64_t limitDescendantCount, uint64_t limitDescendantSize,
-//     std::string &errString, bool fSearchForParents) const {
-//   LOCK(cs);
-//   setAncestors.clear();
-
-//   std::vector<txiter> vToProcess;
-//   const CTransaction &tx = entry.GetTx();
-
-//   if (fSearchForParents) {
-//     for (unsigned int i = 0; i < tx.vin.size(); i++) {
-//       txiter piter = mapTx.find(tx.vin[i].prevout.hash);
-//       if (piter != mapTx.end()) {
-//         vToProcess.push_back(piter);
-//       }
-//     }
-//   } else {
-//     txiter it = mapTx.iterator_to(entry);
-//     const setEntries &parents = GetMemPoolParents(it);
-//     vToProcess.insert(vToProcess.end(), parents.begin(), parents.end());
-//   }
-
-//   uint64_t totalSizeWithAncestors = entry.GetTxSize();
-
-//   while (!vToProcess.empty()) {
-//     txiter stageit = vToProcess.back();
-//     vToProcess.pop_back();
-
-//     if (setAncestors.count(stageit)) {
-//       continue;
-//     }
-
-//     if (setAncestors.size() + 1 > limitAncestorCount) {
-//       errString = strprintf("too many unconfirmed ancestors [limit: %u]",
-//                             limitAncestorCount);
-//       return false;
-//     }
-
-//     totalSizeWithAncestors += stageit->GetTxSize();
-//     if (totalSizeWithAncestors > limitAncestorSize) {
-//       errString = strprintf("exceeds ancestor size limit [limit: %u]",
-//                             limitAncestorSize);
-//       return false;
-//     }
-
-//     if (stageit->GetSizeWithDescendants() + entry.GetTxSize() >
-//         limitDescendantSize) {
-//       errString =
-//           strprintf("exceeds descendant size limit for tx %s [limit: %u]",
-//                     stageit->GetTx().GetHash().ToString(), limitDescendantSize);
-//       return false;
-//     }
-//     if (stageit->GetCountWithDescendants() + 1 > limitDescendantCount) {
-//       errString = strprintf("too many descendants for tx %s [limit: %u]",
-//                             stageit->GetTx().GetHash().ToString(),
-//                             limitDescendantCount);
-//       return false;
-//     }
-
-//     setAncestors.insert(stageit);
-
-//     const setEntries &parents = GetMemPoolParents(stageit);
-//     vToProcess.insert(vToProcess.end(), parents.begin(), parents.end());
-//   }
-
-//   return true;
-// }
-
 /**
  * [REPLACEMENT FUNCTION]
  * This function has been updated for improved performance and robustness.
@@ -524,50 +454,6 @@ void CTxMemPool::removeRecursive(const CTransaction &origTx,
     RemoveStaged(setAllRemoves, false, reason);
   }
 }
-
-// void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins,
-//                                 unsigned int nMemPoolHeight, int flags) {
-//   LOCK(cs);
-//   setEntries txToRemove;
-//   for (indexed_transaction_set::const_iterator it = mapTx.begin();
-//        it != mapTx.end(); it++) {
-//     const CTransaction &tx = it->GetTx();
-//     LockPoints lp = it->GetLockPoints();
-//     bool validLP = TestLockPointValidity(&lp);
-//     if (!CheckFinalTx(tx, flags) ||
-//         !CheckSequenceLocks(tx, flags, &lp, validLP)) {
-//       txToRemove.insert(it);
-//     } else if (it->GetSpendsCoinbase()) {
-//       for (const CTxIn &txin : tx.vin) {
-//         indexed_transaction_set::const_iterator it2 =
-//             mapTx.find(txin.prevout.hash);
-//         if (it2 != mapTx.end())
-//           continue;
-//         const Coin &coin = pcoins->AccessCoin(txin.prevout);
-//         if (nCheckFrequency != 0)
-//           assert(!coin.IsSpent());
-//         if (coin.IsSpent() ||
-//             (coin.IsCoinBase() && ((signed long)nMemPoolHeight) - coin.nHeight <
-//                                       COINBASE_MATURITY)) {
-//           txToRemove.insert(it);
-//           break;
-//         }
-//       }
-//     }
-//     if (!validLP) {
-//       mapTx.modify(it, update_lock_points(lp));
-//     }
-//   }
-
-//   setEntries setAllRemoves;
-//   for (txiter it : txToRemove) {
-//     if (setAllRemoves.count(it)) {
-//       continue;
-//     }
-//     CalculateDescendants(it, setAllRemoves);
-//   }
-//   RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
-// }
 
 /**
  * [REPLACEMENT FUNCTION]
