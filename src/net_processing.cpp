@@ -10,6 +10,7 @@
 #include <arith_uint256.h>
 #include <blockencodings.h>
 #include <chainparams.h>
+#include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <hash.h>
 #include <init.h>
@@ -176,6 +177,14 @@ struct CNodeState {
 
   int64_t m_last_block_announcement;
 
+  // Introspection hardening: Track suspicious chain mapping behavior
+  int nIntrospectionScore;
+  int64_t nLastIntrospectionTime;
+  int nRecentHeaderRequests;
+  int64_t nHeaderRequestWindow;
+  int nStaleForkAnnouncements;
+  int64_t nLastStaleForkTime;
+
   CNodeState(CAddress addrIn, std::string addrNameIn)
       : address(addrIn), name(addrNameIn) {
     fCurrentlyConnected = false;
@@ -198,6 +207,12 @@ struct CNodeState {
     nMisbehavior = 0;
     nStallingSince = 0;
     nUnconnectingHeaders = 0;
+    nIntrospectionScore = 0;
+    nLastIntrospectionTime = 0;
+    nRecentHeaderRequests = 0;
+    nHeaderRequestWindow = GetTime();
+    nStaleForkAnnouncements = 0;
+    nLastStaleForkTime = 0;
     pindexBestHeaderSent = nullptr;
     pindexBestKnownBlock = nullptr;
     pindexLastCommonBlock = nullptr;
@@ -1331,6 +1346,41 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman,
         pindexLast->nChainWork > chainActive.Tip()->nChainWork) {
       nodestate->m_last_block_announcement = GetTime();
     }
+    
+    // Introspection hardening: Detect stale fork announcements
+    // Peers repeatedly advertising old forks may be mapping the chain
+    if (gArgs.GetBoolArg("-introspectionhardening", DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
+      if (received_new_header && pindexLast) {
+        // Check if this is a stale fork (significantly behind our tip)
+        if (pindexLast->nChainWork < chainActive.Tip()->nChainWork) {
+          int nHeightDiff = chainActive.Height() - pindexLast->nHeight;
+          
+          // Consider it stale if it's >6 blocks behind
+          if (nHeightDiff > 6) {
+            nodestate->nStaleForkAnnouncements++;
+            nodestate->nLastStaleForkTime = GetTime();
+            
+            // Increase introspection score for stale fork announcements
+            nodestate->nIntrospectionScore += 5;
+            
+            LogPrint(BCLog::NET,
+                     "Peer %d announced stale fork: height %d vs our %d "
+                     "(stale count: %d, introspection score: %d)\n",
+                     pfrom->GetId(), pindexLast->nHeight, chainActive.Height(),
+                     nodestate->nStaleForkAnnouncements,
+                     nodestate->nIntrospectionScore);
+            
+            // Disconnect if too many stale forks announced
+            if (nodestate->nStaleForkAnnouncements > 3) {
+              LogPrintf("WARNING: Disconnecting peer %d for repeated stale fork "
+                        "announcements (%d times) - possible chain mapping\n",
+                        pfrom->GetId(), nodestate->nStaleForkAnnouncements);
+              pfrom->fDisconnect = true;
+            }
+          }
+        }
+      }
+    }
 
     if (nCount == MAX_HEADERS_RESULTS) {
       LogPrint(BCLog::NET,
@@ -1394,7 +1444,9 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman,
       }
     }
 
-    if (IsInitialBlockDownload() && nCount != MAX_HEADERS_RESULTS) {
+    // Introspection hardening: Check chainwork even after IBD
+    // Disconnect peers with significantly weaker chains to prevent attack attempts
+    if (nCount != MAX_HEADERS_RESULTS) {
       if (nodestate->pindexBestKnownBlock &&
           nodestate->pindexBestKnownBlock->nChainWork < nMinimumChainWork) {
         if (IsOutboundDisconnectionCandidate(pfrom)) {
@@ -1402,6 +1454,33 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman,
                     "insufficient work\n",
                     pfrom->GetId());
           pfrom->fDisconnect = true;
+        }
+      }
+      
+      // Additional check: Disconnect if peer's best chain is far behind ours
+      // This protects against peers advertising weak forks post-IBD
+      if (gArgs.GetBoolArg("-introspectionhardening", DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
+        if (nodestate->pindexBestKnownBlock && chainActive.Tip()) {
+          // Peer's chain must be within reasonable distance of our chainwork
+          // Allow for up to 144 blocks worth of work difference (~1 day)
+          arith_uint256 nOurChainWork = chainActive.Tip()->nChainWork;
+          arith_uint256 nPeerChainWork = nodestate->pindexBestKnownBlock->nChainWork;
+          
+          // Calculate acceptable minimum (our work minus ~144 blocks of average work)
+          arith_uint256 nWorkPerBlock = nOurChainWork / std::max(chainActive.Height(), 1);
+          arith_uint256 nMinAcceptableWork = nOurChainWork - (nWorkPerBlock * 144);
+          
+          if (nPeerChainWork < nMinAcceptableWork && 
+              IsOutboundDisconnectionCandidate(pfrom) &&
+              !IsInitialBlockDownload()) {
+            LogPrintf("WARNING: Disconnecting outbound peer %d -- chain work "
+                      "significantly behind ours (peer: %s, ours: %s, min: %s)\n",
+                      pfrom->GetId(),
+                      nPeerChainWork.ToString(),
+                      nOurChainWork.ToString(),
+                      nMinAcceptableWork.ToString());
+            pfrom->fDisconnect = true;
+          }
         }
       }
     }
@@ -1985,6 +2064,43 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     }
 
     CNodeState *nodestate = State(pfrom->GetId());
+    
+    // Introspection hardening: Track header request patterns
+    if (gArgs.GetBoolArg("-introspectionhardening", DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
+      int64_t nNow = GetTime();
+      const int64_t HEADER_REQUEST_WINDOW = 60; // 1 minute window
+      const int MAX_HEADER_REQUESTS_PER_WINDOW = 20;
+      const int INTROSPECTION_SCORE_THRESHOLD = 100;
+      
+      // Reset window if enough time has passed
+      if (nNow - nodestate->nHeaderRequestWindow > HEADER_REQUEST_WINDOW) {
+        nodestate->nRecentHeaderRequests = 0;
+        nodestate->nHeaderRequestWindow = nNow;
+      }
+      
+      nodestate->nRecentHeaderRequests++;
+      
+      // Check for excessive header requests (potential chain mapping)
+      if (nodestate->nRecentHeaderRequests > MAX_HEADER_REQUESTS_PER_WINDOW) {
+        nodestate->nIntrospectionScore += 10;
+        nodestate->nLastIntrospectionTime = nNow;
+        
+        LogPrint(BCLog::NET,
+                 "Peer %d excessive GETHEADERS requests: %d in window "
+                 "(introspection score: %d)\n",
+                 pfrom->GetId(), nodestate->nRecentHeaderRequests,
+                 nodestate->nIntrospectionScore);
+        
+        // Disconnect peers with high introspection score
+        if (nodestate->nIntrospectionScore >= INTROSPECTION_SCORE_THRESHOLD) {
+          LogPrintf("WARNING: Disconnecting peer %d for suspicious chain "
+                    "introspection behavior (score: %d)\n",
+                    pfrom->GetId(), nodestate->nIntrospectionScore);
+          pfrom->fDisconnect = true;
+          return true;
+        }
+      }
+    }
     const CBlockIndex *pindex = nullptr;
     if (locator.IsNull()) {
       BlockMap::iterator mi = mapBlockIndex.find(hashStop);

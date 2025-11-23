@@ -586,8 +586,29 @@ std::string HelpMessage(HelpMessageMode mode) {
     strUsage += HelpMessageOpt(
         "-disablesafemode",
         strprintf(
-            "Disable safemode, override a real safe mode event (default: %u)",
+            _("Disable safemode, override a real safe mode event (default: %u)"),
             DEFAULT_DISABLE_SAFEMODE));
+    strUsage += HelpMessageOpt("-ignore_replay_error", _("Ignore replay block errors on startup (use with caution!). This can be used to start the daemon even if the chainstate is inconsistent."));
+    strUsage += HelpMessageOpt("-disable_bip30_check", _("Disable BIP30 check (use with caution!). This can be used to get past 'tried to overwrite transaction' errors."));
+    strUsage += HelpMessageOpt(
+        "-introspectionhardening",
+        strprintf("Enable introspection hardening protections against reorg "
+                  "attacks targeting immature coinbase (default: %u)",
+                  DEFAULT_ENABLE_INTROSPECTION_HARDENING));
+    strUsage += HelpMessageOpt(
+        "-anchordepth=<n>",
+        strprintf("Reorg depth threshold for policy-level friction. Reorgs "
+                  "deeper than this require -allowdeepreorg (default: %u)",
+                  DEFAULT_ANCHOR_DEPTH));
+    strUsage += HelpMessageOpt(
+        "-allowdeepreorg",
+        "Allow deep reorganizations beyond anchor depth. Use with caution as "
+        "this may enable attacks on immature coinbase (default: 0)");
+    strUsage += HelpMessageOpt(
+        "-maxforktraversal=<n>",
+        strprintf("Maximum depth for backward traversal when finding forks. "
+                  "Prevents chain topology mapping attacks (default: %u)",
+                  DEFAULT_MAX_FORK_TRAVERSAL));
     strUsage += HelpMessageOpt("-deprecatedrpc=<method>",
                                "Allows deprecated RPC method(s) to be used");
     strUsage += HelpMessageOpt(

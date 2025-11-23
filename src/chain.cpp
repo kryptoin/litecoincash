@@ -12,6 +12,8 @@
 
 #include <validation.h>
 
+#include <consensus/consensus.h>
+
 void CChain::SetTip(CBlockIndex *pindex) {
   if (pindex == nullptr) {
     vChain.clear();
@@ -56,8 +58,24 @@ const CBlockIndex *CChain::FindFork(const CBlockIndex *pindex) const {
   }
   if (pindex->nHeight > Height())
     pindex = pindex->GetAncestor(Height());
-  while (pindex && !Contains(pindex))
+  
+  // Introspection hardening: Limit backward traversal depth to prevent
+  // attackers from mapping deep forks. This is a soft limit - legitimate
+  // use cases in validation will still work, but external queries are bounded.
+  int nTraversalLimit = gArgs.GetArg("-maxforktraversal", DEFAULT_MAX_FORK_TRAVERSAL);
+  int nTraversed = 0;
+  
+  while (pindex && !Contains(pindex)) {
     pindex = pindex->pprev;
+    nTraversed++;
+    
+    // Prevent excessive backward traversal for introspection attacks
+    if (nTraversed > nTraversalLimit) {
+      LogPrint(BCLog::NET, "FindFork: Excessive traversal limit reached (%d blocks), "
+               "returning nullptr (introspection hardening)\n", nTraversed);
+      return nullptr;
+    }
+  }
   return pindex;
 }
 

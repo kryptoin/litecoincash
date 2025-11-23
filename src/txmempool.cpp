@@ -144,78 +144,81 @@ bool CTxMemPool::CalculateMemPoolAncestors(
     uint64_t limitAncestorCount, uint64_t limitAncestorSize,
     uint64_t limitDescendantCount, uint64_t limitDescendantSize,
     std::string &errString, bool fSearchForParents) const {
-    LOCK(cs);
-    setAncestors.clear();
+  LOCK(cs);
+  setAncestors.clear();
 
-    std::vector<txiter> vToProcess;
-    const CTransaction &tx = entry.GetTx();
+  std::vector<txiter> vToProcess;
+  const CTransaction &tx = entry.GetTx();
 
-    if (fSearchForParents) {
-        // Get parents of a new transaction that is not yet in the mempool
-        for (unsigned int i = 0; i < tx.vin.size(); i++) {
-            txiter piter = mapTx.find(tx.vin[i].prevout.hash);
-            if (piter != mapTx.end()) {
-                vToProcess.push_back(piter);
-            }
-        }
-    } else {
-        // Get parents of a transaction that is already in the mempool
-        txiter it = mapTx.iterator_to(entry);
-        const setEntries &parents = GetMemPoolParents(it);
-        vToProcess.insert(vToProcess.end(), parents.begin(), parents.end());
+  if (fSearchForParents) {
+    // Get parents of a new transaction that is not yet in the mempool
+    for (unsigned int i = 0; i < tx.vin.size(); i++) {
+      txiter piter = mapTx.find(tx.vin[i].prevout.hash);
+      if (piter != mapTx.end()) {
+        vToProcess.push_back(piter);
+      }
+    }
+  } else {
+    // Get parents of a transaction that is already in the mempool
+    txiter it = mapTx.iterator_to(entry);
+    const setEntries &parents = GetMemPoolParents(it);
+    vToProcess.insert(vToProcess.end(), parents.begin(), parents.end());
+  }
+
+  // `totalSizeWithAncestors` includes the transaction itself.
+  uint64_t totalSizeWithAncestors = entry.GetTxSize();
+
+  while (!vToProcess.empty()) {
+    txiter stageit = vToProcess.back();
+    vToProcess.pop_back();
+
+    if (setAncestors.count(stageit)) {
+      // Already processed this ancestor; skip to avoid cycles and redundant
+      // work.
+      continue;
     }
 
-    // `totalSizeWithAncestors` includes the transaction itself.
-    uint64_t totalSizeWithAncestors = entry.GetTxSize();
-
-    while (!vToProcess.empty()) {
-        txiter stageit = vToProcess.back();
-        vToProcess.pop_back();
-
-        if (setAncestors.count(stageit)) {
-            // Already processed this ancestor; skip to avoid cycles and redundant work.
-            continue;
-        }
-
-        // Check ancestor limits before adding this one.
-        // The limit is on the number of ancestors, so we check against `setAncestors.size()`.
-        if (setAncestors.size() + 1 > limitAncestorCount) {
-            errString = strprintf("too many unconfirmed ancestors [limit: %u]",
-                                  limitAncestorCount);
-            return false;
-        }
-
-        totalSizeWithAncestors += stageit->GetTxSize();
-        if (totalSizeWithAncestors > limitAncestorSize) {
-            errString = strprintf("exceeds ancestor size limit [limit: %u]",
-                                  limitAncestorSize);
-            return false;
-        }
-
-        // Check descendant limits for this ancestor transaction. The new transaction `entry`
-        // would be a new descendant of `stageit`.
-        if (stageit->GetSizeWithDescendants() + entry.GetTxSize() > limitDescendantSize) {
-            errString =
-                strprintf("exceeds descendant size limit for tx %s [limit: %u]",
-                          stageit->GetTx().GetHash().ToString(), limitDescendantSize);
-            return false;
-        }
-        if (stageit->GetCountWithDescendants() + 1 > limitDescendantCount) {
-            errString = strprintf("too many descendants for tx %s [limit: %u]",
-                                  stageit->GetTx().GetHash().ToString(),
-                                  limitDescendantCount);
-            return false;
-        }
-
-        // Add to our set of confirmed ancestors
-        setAncestors.insert(stageit);
-
-        // Add its parents to the list of transactions to process
-        const setEntries &parents = GetMemPoolParents(stageit);
-        vToProcess.insert(vToProcess.end(), parents.begin(), parents.end());
+    // Check ancestor limits before adding this one.
+    // The limit is on the number of ancestors, so we check against
+    // `setAncestors.size()`.
+    if (setAncestors.size() + 1 > limitAncestorCount) {
+      errString = strprintf("too many unconfirmed ancestors [limit: %u]",
+                            limitAncestorCount);
+      return false;
     }
 
-    return true;
+    totalSizeWithAncestors += stageit->GetTxSize();
+    if (totalSizeWithAncestors > limitAncestorSize) {
+      errString = strprintf("exceeds ancestor size limit [limit: %u]",
+                            limitAncestorSize);
+      return false;
+    }
+
+    // Check descendant limits for this ancestor transaction. The new
+    // transaction `entry` would be a new descendant of `stageit`.
+    if (stageit->GetSizeWithDescendants() + entry.GetTxSize() >
+        limitDescendantSize) {
+      errString =
+          strprintf("exceeds descendant size limit for tx %s [limit: %u]",
+                    stageit->GetTx().GetHash().ToString(), limitDescendantSize);
+      return false;
+    }
+    if (stageit->GetCountWithDescendants() + 1 > limitDescendantCount) {
+      errString = strprintf("too many descendants for tx %s [limit: %u]",
+                            stageit->GetTx().GetHash().ToString(),
+                            limitDescendantCount);
+      return false;
+    }
+
+    // Add to our set of confirmed ancestors
+    setAncestors.insert(stageit);
+
+    // Add its parents to the list of transactions to process
+    const setEntries &parents = GetMemPoolParents(stageit);
+    vToProcess.insert(vToProcess.end(), parents.begin(), parents.end());
+  }
+
+  return true;
 }
 
 void CTxMemPool::UpdateAncestorsOf(bool add, txiter it,
@@ -337,6 +340,7 @@ void CTxMemPool::AddTransactionsUpdated(unsigned int n) {
 bool CTxMemPool::addUnchecked(const uint256 &hash, const CTxMemPoolEntry &entry,
                               setEntries &setAncestors, bool validFeeEstimate) {
   NotifyEntryAdded(entry.GetSharedTx());
+  metrics.recordAdd();
 
   LOCK(cs);
   indexed_transaction_set::iterator newit = mapTx.insert(entry).first;
@@ -382,6 +386,7 @@ bool CTxMemPool::addUnchecked(const uint256 &hash, const CTxMemPoolEntry &entry,
 
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason) {
   NotifyEntryRemoved(it->GetSharedTx(), reason);
+  metrics.recordRemove();
   const uint256 hash = it->GetTx().GetHash();
   for (const CTxIn &txin : it->GetTx().vin)
     mapNextTx.erase(txin.prevout);
@@ -428,6 +433,21 @@ void CTxMemPool::CalculateDescendants(txiter entryit,
   }
 }
 
+void CTxMemPool::CalculateDescendantsCached(txiter entryit,
+                                            setEntries &setDescendants) {
+  // Check cache first
+  auto cacheIt = descendantCache.find(entryit);
+  if (cacheIt != descendantCache.end() &&
+      cacheIt->second.timestamp > lastCacheInvalidation) {
+    setDescendants = cacheIt->second.descendants;
+    return;
+  }
+
+  // Use original calculation but cache result
+  CalculateDescendants(entryit, setDescendants);
+  descendantCache[entryit] = {setDescendants, GetTime()};
+}
+
 void CTxMemPool::removeRecursive(const CTransaction &origTx,
                                  MemPoolRemovalReason reason) {
   {
@@ -458,8 +478,8 @@ void CTxMemPool::removeRecursive(const CTransaction &origTx,
 /**
  * [REPLACEMENT FUNCTION]
  * This function has been updated for improved performance and robustness.
- * - The logic for building the final set of transactions to remove (`setAllRemoves`)
- * has been optimized to prevent redundant graph traversals.
+ * - The logic for building the final set of transactions to remove
+ * (`setAllRemoves`) has been optimized to prevent redundant graph traversals.
  * - When a set of transactions are identified for removal (e.g., because they
  * are no longer valid after a reorg), we must also remove all of their
  * descendants. The original logic could re-calculate descendants for the same
@@ -507,7 +527,7 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins,
   setEntries setAllRemoves;
   for (txiter it : txToRemove) {
     if (setAllRemoves.count(it)) {
-        continue;
+      continue;
     }
     CalculateDescendants(it, setAllRemoves);
   }
@@ -799,6 +819,7 @@ CTransactionRef CTxMemPool::get(const uint256 &hash) const {
   indexed_transaction_set::const_iterator i = mapTx.find(hash);
   if (i == mapTx.end())
     return nullptr;
+  metrics.recordQuery(0); // Simple record, could track time if needed
   return i->GetSharedTx();
 }
 

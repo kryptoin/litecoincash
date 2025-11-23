@@ -172,6 +172,11 @@ public:
   unsigned int nTx;
   unsigned int nUndoPos;
 
+  // Introspection hardening: Track shallow blocks for delayed exposure
+  // Blocks within shallow_distance_from_tip confirmations may have metadata
+  // redacted in certain contexts to prevent timing attacks on immature coinbase
+  mutable uint16_t shallow_distance_from_tip;
+
   void SetNull() {
     phashBlock = nullptr;
     pprev = nullptr;
@@ -192,6 +197,7 @@ public:
     nTime = 0;
     nBits = 0;
     nNonce = 0;
+    shallow_distance_from_tip = UINT16_MAX;
   }
 
   CBlockIndex() { SetNull(); }
@@ -289,6 +295,11 @@ public:
 
   CBlockIndex *GetAncestor(int height);
   const CBlockIndex *GetAncestor(int height) const;
+
+  // Introspection hardening: Check if block is within shallow confirmation window
+  bool IsShallow(uint16_t exposure_delay_depth) const {
+    return shallow_distance_from_tip <= exposure_delay_depth;
+  }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex &block);
