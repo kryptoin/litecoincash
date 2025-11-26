@@ -27,7 +27,8 @@
 #include <wallet/wallet.h>
 #endif
 
-#include <QDesktopWidget>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
@@ -439,7 +440,7 @@ RPCConsole::RPCConsole(const PlatformStyle *_platformStyle, QWidget *parent)
   QSettings settings;
   if (!restoreGeometry(
           settings.value("RPCConsoleWindowGeometry").toByteArray())) {
-    move(QApplication::desktop()->availableGeometry().center() -
+    move(QGuiApplication::primaryScreen()->availableGeometry().center() -
          frameGeometry().center());
   }
 

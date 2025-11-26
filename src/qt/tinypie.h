@@ -5,6 +5,7 @@
 
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QWidget>
 
 class TinyPie : public QWidget {

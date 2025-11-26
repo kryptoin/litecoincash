@@ -101,6 +101,29 @@ class FrameworkInfo(object):
         
         path = m.group(1)
         
+        # Resolve @rpath
+        if path.startswith("@rpath/"):
+            # Common search paths for Homebrew and system
+            search_paths = [
+                "/opt/homebrew/lib",
+                "/usr/local/lib",
+                "/opt/homebrew/opt/protobuf/lib",
+                "/opt/homebrew/opt/abseil/lib"
+            ]
+            found = False
+            for search_path in search_paths:
+                candidate = path.replace("@rpath", search_path)
+                if os.path.exists(candidate):
+                    path = candidate
+                    found = True
+                    break
+            
+            if not found:
+                # If not found, try to find it in the same directory as the binary being inspected
+                # This is harder because we don't have the binary path here easily without passing it
+                # But we can try to guess or just leave it and let it fail later with a better error
+                pass
+
         info = cls()
         info.sourceFilePath = path
         info.installName = path
@@ -551,7 +574,8 @@ if len(config.fancy) == 1:
         sys.exit(1)
     
     try:
-        fancy = plistlib.readPlist(p)
+        with open(p, 'rb') as f:
+            fancy = plistlib.load(f)
     except:
         if verbose >= 1:
             sys.stderr.write("Error: Could not parse fancy disk image plist at \"%s\"\n" % (p))

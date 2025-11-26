@@ -28,6 +28,9 @@
 #include <utilmoneystr.h>
 #include <validation.h>
 #include <wallet/coincontrol.h>
+
+#include <algorithm>
+#include <random>
 #include <wallet/fees.h>
 #include <wallet/init.h>
 
@@ -2141,7 +2144,9 @@ bool CWallet::SelectCoinsMinConf(const CAmount &nTargetValue,
   std::vector<CInputCoin> vValue;
   CAmount nTotalLower = 0;
 
-  random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::shuffle(vCoins.begin(), vCoins.end(), g);
 
   for (const COutput &output : vCoins) {
     if (!output.fSpendable)

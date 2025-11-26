@@ -52,7 +52,7 @@ static inline uint64_t LE_LOAD64(const uint8_t *p) {
 // For further improvements see Intel publication at:
 // http://download.intel.com/design/intarch/papers/323405.pdf
 uint32_t AcceleratedCRC32C(uint32_t crc, const char* buf, size_t size) {
-#if !defined(LEVELDB_PLATFORM_POSIX_SSE)
+#if !defined(LEVELDB_PLATFORM_POSIX_SSE) || (!defined(__x86_64__) && !defined(__i386__) && !defined(_M_X64) && !defined(_M_IX86))
   return 0;
 #else
 

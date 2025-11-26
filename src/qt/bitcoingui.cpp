@@ -37,7 +37,8 @@
 #include <QAction>
 #include <QApplication>
 #include <QDateTime>
-#include <QDesktopWidget>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QDragEnterEvent>
 #include <QListWidget>
 #include <QMenuBar>
@@ -48,6 +49,9 @@
 #include <QShortcut>
 #include <QStackedWidget>
 #include <QStatusBar>
+
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
 #include <QStyle>
 #include <QTimer>
 #include <QToolBar>
@@ -95,7 +99,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle,
       spinnerFrame(0), platformStyle(_platformStyle) {
   QSettings settings;
   if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
-    move(QApplication::desktop()->availableGeometry().center() -
+    move(QGuiApplication::primaryScreen()->availableGeometry().center() -
          frameGeometry().center());
   }
 

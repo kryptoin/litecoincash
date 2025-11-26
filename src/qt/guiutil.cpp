@@ -42,7 +42,7 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
-#include <QDesktopWidget>
+#include <QStandardPaths>
 #include <QDoubleValidator>
 #include <QFileDialog>
 #include <QFont>
@@ -192,11 +192,9 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out) {
 }
 
 bool parseBitcoinURI(QString uri, SendCoinsRecipient *out) {
-    if(uri.startsWith("litecoincash:
-
+    if(uri.startsWith("litecoincash://"))
     {
-    uri.replace(0, 15, "litecoincash:");    
-
+        uri.replace(0, 15, "litecoincash:");
     }
     QUrl uriInstance(uri);
     return parseBitcoinURI(uriInstance, out);

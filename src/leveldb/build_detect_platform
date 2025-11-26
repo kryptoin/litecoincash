@@ -87,7 +87,11 @@ case "$TARGET_OS" in
         [ -z "$INSTALL_PATH" ] && INSTALL_PATH=`pwd`
         PLATFORM_SHARED_LDFLAGS="-dynamiclib -install_name $INSTALL_PATH/"
         PORT_FILE=port/port_posix.cc
-        PORT_SSE_FILE=port/port_posix_sse.cc
+        if [ "$(uname -m)" = "arm64" ]; then
+            PORT_SSE_FILE=
+        else
+            PORT_SSE_FILE=port/port_posix_sse.cc
+        fi
         ;;
     Linux)
         PLATFORM=OS_LINUX

@@ -26,6 +26,9 @@
 #include <QIcon>
 #include <QList>
 
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
+
 static int column_alignments[] = {Qt::AlignLeft | Qt::AlignVCenter,
 
                                   Qt::AlignLeft | Qt::AlignVCenter,

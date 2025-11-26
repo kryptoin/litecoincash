@@ -64,6 +64,7 @@
 #include <QtGui/QMouseEvent>
 #include <QtGui/QPaintEvent>
 #include <QtGui/QPainter>
+#include <QtGui/QPainterPath>
 #include <QtGui/QPixmap>
 #include <QtGui/QWheelEvent>
 #include <algorithm>

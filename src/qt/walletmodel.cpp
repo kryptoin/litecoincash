@@ -40,6 +40,9 @@
 #include <QSet>
 #include <QTimer>
 
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
+
 #include <policy/policy.h>
 
 WalletModel::WalletModel(const PlatformStyle *platformStyle, CWallet *_wallet,
