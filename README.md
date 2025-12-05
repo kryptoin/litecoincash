@@ -4,7 +4,7 @@ Litecoin Cash Core integration/staging tree
 What is Litecoin Cash?
 ----------------------
 
-Litecoin Cash is a fork of Litecoin supporting SHA256 PoW and Hive Mining. For full details, as well as prebuilt binaries for Windows, Mac and Linux, please visit our website at https://litecoinca.sh.
+Litecoin Cash is a fork of Litecoin supporting SHA256 PoW and Hive Mining. For full details, as well as prebuilt binaries for Windows, Mac and Linux, please visit our website at https://litecoincash.net.
 
 Litecoin Cash Core is the full node software that makes up the backbone of the LCC network.
 
@@ -35,6 +35,20 @@ Testing
 Testing and code review is the bottleneck for development; we get more pull
 requests than we can review and test on short notice. Please be patient and help out by testing
 other people's pull requests, and remember this is a security-critical project where any mistake might cost people lots of money.
+
+### Sanity Tests
+
+Quick sanity tests that verify basic functionality without requiring chain startup or RPC:
+
+```bash
+./test/functional/run_sanity_tests.sh
+```
+
+These tests check:
+- Binary existence and executability
+- `--version` and `--help` output
+- Configuration parsing
+- Data directory creation
 
 ### Automated Testing
 

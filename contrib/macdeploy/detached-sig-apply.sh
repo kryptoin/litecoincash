@@ -27,11 +27,11 @@ tar -C ${TEMPDIR} -xf ${UNSIGNED}
 cp -rf "${SIGNATURE}"/* ${TEMPDIR}
 
 if [ -z "${PAGESTUFF}" ]; then
-  PAGESTUFF=${TEMPDIR}/pagestuff
+  PAGESTUFF=pagestuff
 fi
 
 if [ -z "${CODESIGN_ALLOCATE}" ]; then
-  CODESIGN_ALLOCATE=${TEMPDIR}/codesign_allocate
+  CODESIGN_ALLOCATE=codesign_allocate
 fi
 
 find ${TEMPDIR} -name "*.sign" | while read i; do

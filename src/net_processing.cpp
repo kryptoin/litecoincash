@@ -185,6 +185,26 @@ struct CNodeState {
   int nStaleForkAnnouncements;
   int64_t nLastStaleForkTime;
 
+  // Hardening: Rate limiting trackers
+  int64_t nLastInvTime;
+  int nInvCount;
+  int64_t nLastGetHeadersTime;
+  int nGetHeadersCount;
+  int64_t nLastMempoolReqTime;
+  int nOrphanCount;
+
+  // Phase 2 Hardening: Additional rate limiting
+  int64_t nLastAddrTime;
+  int nAddrCount;
+  int64_t nLastFilterLoadTime;
+  int nFilterLoadCount;
+  int64_t nLastRejectTime;
+  int nRejectCount;
+  int nNotFoundCount;
+  int64_t nLastNotFoundTime;
+  int nSendCmpctCount;
+  int nPongMismatchCount;
+
   CNodeState(CAddress addrIn, std::string addrNameIn)
       : address(addrIn), name(addrNameIn) {
     fCurrentlyConnected = false;
@@ -213,6 +233,22 @@ struct CNodeState {
     nHeaderRequestWindow = GetTime();
     nStaleForkAnnouncements = 0;
     nLastStaleForkTime = 0;
+    nLastInvTime = 0;
+    nInvCount = 0;
+    nLastGetHeadersTime = 0;
+    nGetHeadersCount = 0;
+    nLastMempoolReqTime = 0;
+    nOrphanCount = 0;
+    nLastAddrTime = 0;
+    nAddrCount = 0;
+    nLastFilterLoadTime = 0;
+    nFilterLoadCount = 0;
+    nLastRejectTime = 0;
+    nRejectCount = 0;
+    nNotFoundCount = 0;
+    nLastNotFoundTime = 0;
+    nSendCmpctCount = 0;
+    nPongMismatchCount = 0;
     pindexBestHeaderSent = nullptr;
     pindexBestKnownBlock = nullptr;
     pindexLastCommonBlock = nullptr;
@@ -604,6 +640,14 @@ void AddToCompactExtraTransactions(const CTransactionRef &tx)
 
 bool AddOrphanTx(const CTransactionRef &tx, NodeId peer)
     EXCLUSIVE_LOCKS_REQUIRED(g_cs_orphans) {
+  // Hardening: Limit orphans per peer
+  CNodeState *state = State(peer);
+  if (state && state->nOrphanCount >= 100) {
+    LogPrint(BCLog::MEMPOOL,
+             "ignoring orphan tx from peer=%d (quota exceeded)\n", peer);
+    return false;
+  }
+
   const uint256 &hash = tx->GetHash();
   if (mapOrphanTransactions.count(hash))
     return false;
@@ -627,6 +671,8 @@ bool AddOrphanTx(const CTransactionRef &tx, NodeId peer)
   LogPrint(BCLog::MEMPOOL, "stored orphan tx %s (mapsz %u outsz %u)\n",
            hash.ToString(), mapOrphanTransactions.size(),
            mapOrphanTransactionsByPrev.size());
+  if (state)
+    state->nOrphanCount++;
   return true;
 }
 
@@ -634,6 +680,13 @@ int static EraseOrphanTx(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(g_cs_orphans) {
   std::map<uint256, COrphanTx>::iterator it = mapOrphanTransactions.find(hash);
   if (it == mapOrphanTransactions.end())
     return 0;
+
+  // Hardening: Decrement orphan count
+  NodeId peer = it->second.fromPeer;
+  CNodeState *state = State(peer);
+  if (state && state->nOrphanCount > 0)
+    state->nOrphanCount--;
+
   for (const CTxIn &txin : it->second.tx->vin) {
     auto itPrev = mapOrphanTransactionsByPrev.find(txin.prevout);
     if (itPrev == mapOrphanTransactionsByPrev.end())
@@ -687,13 +740,32 @@ unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans) {
       LogPrint(BCLog::MEMPOOL, "Erased %d orphan tx due to expiration\n",
                nErased);
   }
+  // Phase 2 Hardening: Evict orphans from misbehaving peers first
   while (mapOrphanTransactions.size() > nMaxOrphans) {
-    uint256 randomhash = GetRandHash();
-    std::map<uint256, COrphanTx>::iterator it =
-        mapOrphanTransactions.lower_bound(randomhash);
-    if (it == mapOrphanTransactions.end())
-      it = mapOrphanTransactions.begin();
-    EraseOrphanTx(it->first);
+    int nHighestMisbehavior = -1;
+    std::map<uint256, COrphanTx>::iterator itToErase =
+        mapOrphanTransactions.end();
+
+    // Find orphan from peer with highest misbehavior score
+    for (auto it = mapOrphanTransactions.begin();
+         it != mapOrphanTransactions.end(); ++it) {
+      CNodeState *peerState = State(it->second.fromPeer);
+      int peerMisbehavior = peerState ? peerState->nMisbehavior : 0;
+      if (peerMisbehavior > nHighestMisbehavior) {
+        nHighestMisbehavior = peerMisbehavior;
+        itToErase = it;
+      }
+    }
+
+    // Fallback to random if no misbehaving peer found
+    if (itToErase == mapOrphanTransactions.end() || nHighestMisbehavior == 0) {
+      uint256 randomhash = GetRandHash();
+      itToErase = mapOrphanTransactions.lower_bound(randomhash);
+      if (itToErase == mapOrphanTransactions.end())
+        itToErase = mapOrphanTransactions.begin();
+    }
+
+    EraseOrphanTx(itToErase->first);
     ++nEvicted;
   }
   return nEvicted;
@@ -1346,35 +1418,37 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman,
         pindexLast->nChainWork > chainActive.Tip()->nChainWork) {
       nodestate->m_last_block_announcement = GetTime();
     }
-    
+
     // Introspection hardening: Detect stale fork announcements
     // Peers repeatedly advertising old forks may be mapping the chain
-    if (gArgs.GetBoolArg("-introspectionhardening", DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
+    if (gArgs.GetBoolArg("-introspectionhardening",
+                         DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
       if (received_new_header && pindexLast) {
         // Check if this is a stale fork (significantly behind our tip)
         if (pindexLast->nChainWork < chainActive.Tip()->nChainWork) {
           int nHeightDiff = chainActive.Height() - pindexLast->nHeight;
-          
+
           // Consider it stale if it's >6 blocks behind
           if (nHeightDiff > 6) {
             nodestate->nStaleForkAnnouncements++;
             nodestate->nLastStaleForkTime = GetTime();
-            
+
             // Increase introspection score for stale fork announcements
             nodestate->nIntrospectionScore += 5;
-            
+
             LogPrint(BCLog::NET,
                      "Peer %d announced stale fork: height %d vs our %d "
                      "(stale count: %d, introspection score: %d)\n",
                      pfrom->GetId(), pindexLast->nHeight, chainActive.Height(),
                      nodestate->nStaleForkAnnouncements,
                      nodestate->nIntrospectionScore);
-            
+
             // Disconnect if too many stale forks announced
             if (nodestate->nStaleForkAnnouncements > 3) {
-              LogPrintf("WARNING: Disconnecting peer %d for repeated stale fork "
-                        "announcements (%d times) - possible chain mapping\n",
-                        pfrom->GetId(), nodestate->nStaleForkAnnouncements);
+              LogPrintf(
+                  "WARNING: Disconnecting peer %d for repeated stale fork "
+                  "announcements (%d times) - possible chain mapping\n",
+                  pfrom->GetId(), nodestate->nStaleForkAnnouncements);
               pfrom->fDisconnect = true;
             }
           }
@@ -1445,7 +1519,8 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman,
     }
 
     // Introspection hardening: Check chainwork even after IBD
-    // Disconnect peers with significantly weaker chains to prevent attack attempts
+    // Disconnect peers with significantly weaker chains to prevent attack
+    // attempts
     if (nCount != MAX_HEADERS_RESULTS) {
       if (nodestate->pindexBestKnownBlock &&
           nodestate->pindexBestKnownBlock->nChainWork < nMinimumChainWork) {
@@ -1456,29 +1531,33 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman,
           pfrom->fDisconnect = true;
         }
       }
-      
+
       // Additional check: Disconnect if peer's best chain is far behind ours
       // This protects against peers advertising weak forks post-IBD
-      if (gArgs.GetBoolArg("-introspectionhardening", DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
+      if (gArgs.GetBoolArg("-introspectionhardening",
+                           DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
         if (nodestate->pindexBestKnownBlock && chainActive.Tip()) {
           // Peer's chain must be within reasonable distance of our chainwork
           // Allow for up to 144 blocks worth of work difference (~1 day)
           arith_uint256 nOurChainWork = chainActive.Tip()->nChainWork;
-          arith_uint256 nPeerChainWork = nodestate->pindexBestKnownBlock->nChainWork;
-          
-          // Calculate acceptable minimum (our work minus ~144 blocks of average work)
-          arith_uint256 nWorkPerBlock = nOurChainWork / std::max(chainActive.Height(), 1);
-          arith_uint256 nMinAcceptableWork = nOurChainWork - (nWorkPerBlock * 144);
-          
-          if (nPeerChainWork < nMinAcceptableWork && 
+          arith_uint256 nPeerChainWork =
+              nodestate->pindexBestKnownBlock->nChainWork;
+
+          // Calculate acceptable minimum (our work minus ~144 blocks of average
+          // work)
+          arith_uint256 nWorkPerBlock =
+              nOurChainWork / std::max(chainActive.Height(), 1);
+          arith_uint256 nMinAcceptableWork =
+              nOurChainWork - (nWorkPerBlock * 144);
+
+          if (nPeerChainWork < nMinAcceptableWork &&
               IsOutboundDisconnectionCandidate(pfrom) &&
               !IsInitialBlockDownload()) {
-            LogPrintf("WARNING: Disconnecting outbound peer %d -- chain work "
-                      "significantly behind ours (peer: %s, ours: %s, min: %s)\n",
-                      pfrom->GetId(),
-                      nPeerChainWork.ToString(),
-                      nOurChainWork.ToString(),
-                      nMinAcceptableWork.ToString());
+            LogPrintf(
+                "WARNING: Disconnecting outbound peer %d -- chain work "
+                "significantly behind ours (peer: %s, ours: %s, min: %s)\n",
+                pfrom->GetId(), nPeerChainWork.ToString(),
+                nOurChainWork.ToString(), nMinAcceptableWork.ToString());
             pfrom->fDisconnect = true;
           }
         }
@@ -1529,6 +1608,23 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
   }
 
   if (strCommand == NetMsgType::REJECT) {
+    // Phase 2 Hardening: Rate limit REJECT message logging
+    LOCK(cs_main);
+    CNodeState *state = State(pfrom->GetId());
+    if (state) {
+      int64_t nNow = GetTime();
+      if (nNow - state->nLastRejectTime > 60) {
+        state->nLastRejectTime = nNow;
+        state->nRejectCount = 0;
+      }
+      state->nRejectCount++;
+      if (state->nRejectCount > 10) {
+        LogPrint(BCLog::NET, "Suppressing REJECT logs from peer=%d (flood)\n",
+                 pfrom->GetId());
+        return true; // Silently ignore further REJECT spam
+      }
+    }
+
     if (LogAcceptCategory(BCLog::NET)) {
       try {
         std::string strMsg;
@@ -1782,6 +1878,26 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     std::vector<CAddress> vAddr;
     vRecv >> vAddr;
 
+    // Phase 2 Hardening: Rate limit ADDR messages
+    {
+      LOCK(cs_main);
+      CNodeState *state = State(pfrom->GetId());
+      if (state) {
+        int64_t nNow = GetTime();
+        if (nNow - state->nLastAddrTime > 60) {
+          state->nLastAddrTime = nNow;
+          state->nAddrCount = 0;
+        }
+        state->nAddrCount += vAddr.size();
+        if (state->nAddrCount > 1000) {
+          Misbehaving(pfrom->GetId(), 20);
+          LogPrint(BCLog::NET, "Peer %d ADDR flood: %d addrs in window\n",
+                   pfrom->GetId(), state->nAddrCount);
+          return error("addr flood from peer=%d", pfrom->GetId());
+        }
+      }
+    }
+
     if (pfrom->nVersion < CADDR_TIME_VERSION &&
         connman->GetAddressCount() > 1000)
       return true;
@@ -1829,6 +1945,22 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     bool fAnnounceUsingCMPCTBLOCK = false;
     uint64_t nCMPCTBLOCKVersion = 0;
     vRecv >> fAnnounceUsingCMPCTBLOCK >> nCMPCTBLOCKVersion;
+
+    // Phase 2 Hardening: Limit SENDCMPCT to 5 per session
+    {
+      LOCK(cs_main);
+      CNodeState *state = State(pfrom->GetId());
+      if (state) {
+        state->nSendCmpctCount++;
+        if (state->nSendCmpctCount > 5) {
+          Misbehaving(pfrom->GetId(), 10);
+          LogPrint(BCLog::NET, "Peer %d SENDCMPCT spam: %d messages\n",
+                   pfrom->GetId(), state->nSendCmpctCount);
+          return true;
+        }
+      }
+    }
+
     if (nCMPCTBLOCKVersion == 1 ||
         ((pfrom->GetLocalServices() & NODE_WITNESS) &&
          nCMPCTBLOCKVersion == 2)) {
@@ -1856,6 +1988,22 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
   else if (strCommand == NetMsgType::INV) {
     std::vector<CInv> vInv;
     vRecv >> vInv;
+
+    // Hardening: Rate limit INVs
+    CNodeState *state = State(pfrom->GetId());
+    if (state) {
+      int64_t nNow = GetTime();
+      if (state->nLastInvTime < nNow) {
+        state->nLastInvTime = nNow;
+        state->nInvCount = 0;
+      }
+      state->nInvCount += vInv.size();
+      if (state->nInvCount > 1000) {
+        Misbehaving(pfrom->GetId(), 20);
+        return error("peer sent too many invs");
+      }
+    }
+
     if (vInv.size() > MAX_INV_SZ) {
       LOCK(cs_main);
       Misbehaving(pfrom->GetId(), 20);
@@ -1930,6 +2078,17 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
   else if (strCommand == NetMsgType::GETDATA) {
     std::vector<CInv> vInv;
     vRecv >> vInv;
+
+    // Hardening: Check for duplicates
+    std::set<CInv> setInv;
+    for (const CInv &inv : vInv) {
+      if (setInv.count(inv)) {
+        Misbehaving(pfrom->GetId(), 20);
+        return error("duplicate getdata");
+      }
+      setInv.insert(inv);
+    }
+
     if (vInv.size() > MAX_INV_SZ) {
       LOCK(cs_main);
       Misbehaving(pfrom->GetId(), 20);
@@ -2055,6 +2214,21 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     vRecv >> locator >> hashStop;
 
     LOCK(cs_main);
+
+    // Hardening: Rate limit GETHEADERS
+    CNodeState *state = State(pfrom->GetId());
+    if (state) {
+      if (GetTime() - state->nLastGetHeadersTime < 60) {
+        if (state->nGetHeadersCount > 20) {
+          Misbehaving(pfrom->GetId(), 20);
+          return error("too many getheaders");
+        }
+        state->nGetHeadersCount++;
+      } else {
+        state->nLastGetHeadersTime = GetTime();
+        state->nGetHeadersCount = 1;
+      }
+    }
     if (IsInitialBlockDownload() && !pfrom->fWhitelisted) {
       LogPrint(BCLog::NET,
                "Ignoring getheaders from peer=%d because node is in initial "
@@ -2064,33 +2238,34 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     }
 
     CNodeState *nodestate = State(pfrom->GetId());
-    
+
     // Introspection hardening: Track header request patterns
-    if (gArgs.GetBoolArg("-introspectionhardening", DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
+    if (gArgs.GetBoolArg("-introspectionhardening",
+                         DEFAULT_ENABLE_INTROSPECTION_HARDENING)) {
       int64_t nNow = GetTime();
       const int64_t HEADER_REQUEST_WINDOW = 60; // 1 minute window
       const int MAX_HEADER_REQUESTS_PER_WINDOW = 20;
       const int INTROSPECTION_SCORE_THRESHOLD = 100;
-      
+
       // Reset window if enough time has passed
       if (nNow - nodestate->nHeaderRequestWindow > HEADER_REQUEST_WINDOW) {
         nodestate->nRecentHeaderRequests = 0;
         nodestate->nHeaderRequestWindow = nNow;
       }
-      
+
       nodestate->nRecentHeaderRequests++;
-      
+
       // Check for excessive header requests (potential chain mapping)
       if (nodestate->nRecentHeaderRequests > MAX_HEADER_REQUESTS_PER_WINDOW) {
         nodestate->nIntrospectionScore += 10;
         nodestate->nLastIntrospectionTime = nNow;
-        
+
         LogPrint(BCLog::NET,
                  "Peer %d excessive GETHEADERS requests: %d in window "
                  "(introspection score: %d)\n",
                  pfrom->GetId(), nodestate->nRecentHeaderRequests,
                  nodestate->nIntrospectionScore);
-        
+
         // Disconnect peers with high introspection score
         if (nodestate->nIntrospectionScore >= INTROSPECTION_SCORE_THRESHOLD) {
           LogPrintf("WARNING: Disconnecting peer %d for suspicious chain "
@@ -2143,6 +2318,7 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
       LogPrint(BCLog::NET,
                "transaction sent in violation of protocol peer=%d\n",
                pfrom->GetId());
+      Misbehaving(pfrom->GetId(), 10);
       return true;
     }
 
@@ -2616,6 +2792,12 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
     vRecv >> *pblock;
 
+    // Hardening: Warn on future blocks
+    if (pblock->GetBlockTime() > GetAdjustedTime() + 60 * 60) {
+      LogPrintf("Warning: Future block received from peer=%d\n",
+                pfrom->GetId());
+    }
+
     LogPrint(BCLog::NET, "received block %s peer=%d\n",
              pblock->GetHash().ToString(), pfrom->GetId());
 
@@ -2661,6 +2843,16 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
   }
 
   else if (strCommand == NetMsgType::MEMPOOL) {
+    // Hardening: Rate limit MEMPOOL
+    CNodeState *state = State(pfrom->GetId());
+    if (state) {
+      if (GetTime() - state->nLastMempoolReqTime < 60 * 60) {
+        Misbehaving(pfrom->GetId(), 10);
+        return true;
+      }
+      state->nLastMempoolReqTime = GetTime();
+    }
+
     if (!(pfrom->GetLocalServices() & NODE_BLOOM) && !pfrom->fWhitelisted) {
       LogPrint(
           BCLog::NET,
@@ -2715,6 +2907,19 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
           }
         } else {
           sProblem = "Nonce mismatch";
+          // Phase 2 Hardening: Penalize PONG mismatches
+          {
+            LOCK(cs_main);
+            CNodeState *state = State(pfrom->GetId());
+            if (state) {
+              state->nPongMismatchCount++;
+              if (state->nPongMismatchCount > 3) {
+                Misbehaving(pfrom->GetId(), 10);
+                LogPrint(BCLog::NET, "Peer %d repeated PONG mismatch: %d\n",
+                         pfrom->GetId(), state->nPongMismatchCount);
+              }
+            }
+          }
           if (nonce == 0) {
             bPingFinished = true;
             sProblem = "Nonce zero";
@@ -2739,6 +2944,27 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
   }
 
   else if (strCommand == NetMsgType::FILTERLOAD) {
+    // Phase 2 Hardening: Rate limit FILTERLOAD (CPU-intensive)
+    {
+      LOCK(cs_main);
+      CNodeState *state = State(pfrom->GetId());
+      if (state) {
+        int64_t nNow = GetTime();
+        if (nNow - state->nLastFilterLoadTime < 600) { // 10 minute window
+          state->nFilterLoadCount++;
+          if (state->nFilterLoadCount > 1) {
+            Misbehaving(pfrom->GetId(), 50);
+            LogPrint(BCLog::NET, "Peer %d FILTERLOAD spam: %d in window\n",
+                     pfrom->GetId(), state->nFilterLoadCount);
+            return true;
+          }
+        } else {
+          state->nLastFilterLoadTime = nNow;
+          state->nFilterLoadCount = 1;
+        }
+      }
+    }
+
     CBloomFilter filter;
     vRecv >> filter;
 
@@ -2796,6 +3022,22 @@ bool static ProcessMessage(CNode *pfrom, const std::string &strCommand,
   }
 
   else if (strCommand == NetMsgType::NOTFOUND) {
+    // Phase 2 Hardening: Rate limit NOTFOUND messages
+    LOCK(cs_main);
+    CNodeState *state = State(pfrom->GetId());
+    if (state) {
+      int64_t nNow = GetTime();
+      if (nNow - state->nLastNotFoundTime > 60) {
+        state->nLastNotFoundTime = nNow;
+        state->nNotFoundCount = 0;
+      }
+      state->nNotFoundCount++;
+      if (state->nNotFoundCount > 100) {
+        Misbehaving(pfrom->GetId(), 10);
+        LogPrint(BCLog::NET, "Peer %d NOTFOUND spam: %d in window\n",
+                 pfrom->GetId(), state->nNotFoundCount);
+      }
+    }
   }
 
   else if (strCommand == NetMsgType::RIALTO) {

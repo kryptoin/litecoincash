@@ -110,6 +110,12 @@ test/config.ini
 test/cache/*
 
 # =========================
+# Builds
+# =========================
+dist/
+dist-cli/
+
+# =========================
 # Documentation
 # =========================
 /doc/doxygen/
@@ -117,7 +123,7 @@ test/cache/*
 # =========================
 # OS / Platform Specific
 # =========================
-build-m1.sh
+build-osx-qt-m1.sh
 cleanup.sh
 
 .DS_Store
