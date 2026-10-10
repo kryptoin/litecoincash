@@ -155,7 +155,7 @@ public:
 
     consensus.beeCostFactor = 2500;
 
-    consensus.beeCreationAddress = "CReateLitecoin CashWorkerBeeXYs19YQ";
+    consensus.beeCreationAddress = "CReateLitecoinCashWorkerBeeXYs19YQ";
 
     consensus.hiveCommunityAddress = "CashCFfv8CmdWo6wyMGQWtmQnaToyhgsWr";
 
