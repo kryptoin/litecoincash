@@ -1,0 +1,91 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2017 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#ifndef BITCOIN_UNDO_H
+#define BITCOIN_UNDO_H
+
+#include <compressor.h>
+#include <consensus/consensus.h>
+#include <primitives/transaction.h>
+#include <serialize.h>
+
+class TxInUndoSerializer {
+  const Coin *txout;
+
+public:
+  template <typename Stream> void Serialize(Stream &s) const {
+    ::Serialize(s, VARINT(txout->nHeight * 2 + (txout->fCoinBase ? 1 : 0)));
+    if (txout->nHeight > 0) {
+      ::Serialize(s, (unsigned char)0);
+    }
+    ::Serialize(s, CTxOutCompressor(REF(txout->out)));
+  }
+
+  explicit TxInUndoSerializer(const Coin *coin) : txout(coin) {}
+};
+
+class TxInUndoDeserializer {
+  Coin *txout;
+
+public:
+  template <typename Stream> void Unserialize(Stream &s) {
+    unsigned int nCode = 0;
+    ::Unserialize(s, VARINT(nCode));
+    txout->nHeight = nCode / 2;
+    txout->fCoinBase = nCode & 1;
+    if (txout->nHeight > 0) {
+      int nVersionDummy;
+      ::Unserialize(s, VARINT(nVersionDummy));
+    }
+    ::Unserialize(s, REF(CTxOutCompressor(REF(txout->out))));
+  }
+
+  explicit TxInUndoDeserializer(Coin *coin) : txout(coin) {}
+};
+
+static const size_t MIN_TRANSACTION_INPUT_WEIGHT =
+    WITNESS_SCALE_FACTOR *
+    ::GetSerializeSize(CTxIn(), SER_NETWORK, PROTOCOL_VERSION);
+static const size_t MAX_INPUTS_PER_BLOCK =
+    MAX_BLOCK_WEIGHT / MIN_TRANSACTION_INPUT_WEIGHT;
+
+class CTxUndo {
+public:
+  std::vector<Coin> vprevout;
+
+  template <typename Stream> void Serialize(Stream &s) const {
+    uint64_t count = vprevout.size();
+    ::Serialize(s, COMPACTSIZE(REF(count)));
+    for (const auto &prevout : vprevout) {
+      ::Serialize(s, REF(TxInUndoSerializer(&prevout)));
+    }
+  }
+
+  template <typename Stream> void Unserialize(Stream &s) {
+    uint64_t count = 0;
+    ::Unserialize(s, COMPACTSIZE(count));
+    if (count > MAX_INPUTS_PER_BLOCK) {
+      throw std::ios_base::failure("Too many input undo records");
+    }
+    vprevout.resize(count);
+    for (auto &prevout : vprevout) {
+      ::Unserialize(s, REF(TxInUndoDeserializer(&prevout)));
+    }
+  }
+};
+
+class CBlockUndo {
+public:
+  std::vector<CTxUndo> vtxundo;
+
+  ADD_SERIALIZE_METHODS;
+
+  template <typename Stream, typename Operation>
+  inline void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(vtxundo);
+  }
+};
+
+#endif

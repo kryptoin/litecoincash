@@ -1,0 +1,140 @@
+# =========================
+# Archives & Backups
+# =========================
+*.tar.gz
+*.bak
+*.rej
+*.orig
+*.*~*
+.*.swp
+
+# =========================
+# Build Artifacts
+# =========================
+*.o
+*.o-*
+*.a
+*.lo
+*.la
+*.pb.cc
+*.pb.h
+*.patch
+*.log
+*.trs
+*.dmg
+*.qm
+*.gcno
+*.gcda
+/*.info
+
+# =========================
+# Coverage Reports
+# =========================
+test_litecoincash.coverage/
+total.coverage/
+coverage_percent.txt
+
+# =========================
+# Generated Sources
+# =========================
+qrc_*.cpp
+src/univalue/gen
+src/bench/data/*.raw.h
+src/qt/*.moc
+src/qt/moc_*.cpp
+src/qt/forms/ui_*.h
+src/qt/test/moc*.cpp
+
+# =========================
+# Build Outputs (executables)
+# =========================
+src/litecoincash
+src/litecoincashd
+src/litecoincash-cli
+src/litecoincash-tx
+src/test/test_litecoincash
+src/test/test_litecoincash_fuzzy
+src/qt/test/test_litecoincash-qt
+litecoincash-qt
+litecoincash-Qt.app
+litecoincash-qt_test
+
+# =========================
+# Autotools Generated Files
+# =========================
+Makefile
+Makefile.in
+Makefile.test
+aclocal.m4
+autom4te.cache/
+compile
+config.h
+config.h.in
+config.log
+config.status
+configure
+configure~
+depcomp
+install-sh
+libtool
+missing
+test-driver
+build-aux/
+
+# =========================
+# Config & Metadata
+# =========================
+src/config/bitcoin-config.h
+src/config/bitcoin-config.h.in
+src/config/stamp-h1
+src/qt/bitcoin-qt.*
+share/setup.nsi
+share/qt/Info.plist
+libbitcoinconsensus.pc
+
+# =========================
+# IDE / Editor Files
+# =========================
+.vscode/
+src/.vscode/
+.deps
+.dirstamp
+.libs
+
+# =========================
+# Test Builds
+# =========================
+linux-coverage-build
+linux-build
+win32-build
+test/config.ini
+test/cache/*
+
+# =========================
+# Builds
+# =========================
+dist/
+dist-cli/
+
+# =========================
+# Documentation
+# =========================
+/doc/doxygen/
+doc/*.md
+
+# =========================
+# OS / Platform Specific
+# =========================
+build-osx-qt-m1.sh
+cleanup.sh
+
+.DS_Store
+background.tiff*
+build
+contrib/devtools/split-debug.sh
+just*.sh
+
+# =========================
+# Exceptions
+# =========================
+!src/leveldb*/Makefile
